@@ -1,5 +1,7 @@
 
 import pandas as pd
+import cyvcf2
+import numpy as np
 import optparse
 
 def fileParser(inputfile, outputfile, source):
@@ -63,6 +65,34 @@ def fileParser(inputfile, outputfile, source):
         df = pd.read_csv(inputfile,sep='\t',encoding='latin-1')
         df = df.iloc[:,[0,1,3,5,6,7]]
         df.to_csv(outfile,index=False)
+
+    elif source == 'gnomad':
+
+        vcf = cyvcf2.VCF(inputfile)
+
+        codes=['AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female']
+
+        filter=[]
+        for row in vcf:
+            temp =[]
+            temp.append(row.ID)
+            temp.append(row.CHROM)
+            temp.append(row.POS)
+            temp.append(row.REF)
+            temp.append(row.ALT)
+            temp.append(row.QUAL)
+            temp.append(row.FILTER)
+            for code in codes:
+                if row.INFO[code]:
+                    temp.append(row.INFO[code])
+                else:
+                    temp.append('na')
+            filter.append(temp)
+        df_filter=pd.DataFrame(filter)
+        df_filter.columns=['gnomad-id','chr','pos','alt','ref','qual','filter','AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female']
+        df_filter.to_csv(outfile,index=False)
+
+
 
 try:
     parser = optparse.OptionParser()
