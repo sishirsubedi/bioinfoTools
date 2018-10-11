@@ -4,10 +4,13 @@ import cyvcf2
 import numpy as np
 import optparse
 
-def fileParser(inputfile, outputfile, source):
+def fileParser(infile, outfile, source):
+
+    print ( "Processing file - " , infile )
+    print ( "source is  - " , source )
 
     if source == 'cosmic':
-        df = pd.read_csv(inputfile)
+        df = pd.read_csv(infile)
         filter=[]
         for indx,row in df.iterrows():
             info_line=row['INFO'].split(';')
@@ -28,7 +31,7 @@ def fileParser(inputfile, outputfile, source):
 
     elif source == 'clinvar':
         origin_code = {"0":"unknown","1":"germline", "2":"somatic", "4":"inherited", "8":"paternal", "16":"maternal","32":"de-novo", "64" :"biparental", "128" :"uniparental", "256":"not-tested", "512" : "tested-inconclusive", "1073741824" :"other"}
-        df = pd.read_csv(inputfile,sep='\t')
+        df = pd.read_csv(infile,sep='\t')
         filter=[]
         for indx,row in df.iterrows():
             info_line=row['INFO'].split(';')
@@ -56,41 +59,94 @@ def fileParser(inputfile, outputfile, source):
         df_filter.to_csv(outfile,index=False)
 
     elif source == 'genome1000':
-        df = pd.read_csv(inputfile,sep='\t')
+        df = pd.read_csv(infile,sep='\t')
         df.columns=["chr","pos","g1000-id","ref","alt","altCount","totalCount","altGlobalFreq","americanFreq","asianFreq","afrFreq", "eurFreq"]
         df = df[["g1000-id","chr","pos","ref","alt","altCount","totalCount","altGlobalFreq","americanFreq","asianFreq","afrFreq", "eurFreq"]]
         df.to_csv(outfile,index=False)
 
     elif source == 'oncokb':
-        df = pd.read_csv(inputfile,sep='\t',encoding='latin-1')
+        df = pd.read_csv(infile,sep='\t',encoding='latin-1')
         df = df.iloc[:,[0,1,3,5,6,7]]
+        df.to_csv(outfile,index=False)
+
+
+    elif source == 'civic':
+        df = pd.read_csv(infile,sep='\t')
+        df = df[['gene', 'entrez_id', 'chromosome', 'start', 'reference_bases', 'variant_bases',\
+                  'variant', 'disease', 'drugs', \
+		          'evidence_type', 'evidence_direction', 'evidence_level', \
+                  'clinical_significance', 'evidence_statement', \
+	              'variant_summary', 'variant_origin' ]]
+        df.columns =['gene', 'entrez_id', 'chr', 'pos', 'ref', 'alt',\
+                  'variant', 'disease', 'drugs', \
+		          'evidence_type', 'evidence_direction', 'evidence_level', \
+                  'clinical_significance', 'evidence_statement', \
+	              'variant_summary', 'variant_origin' ]
         df.to_csv(outfile,index=False)
 
     elif source == 'gnomad':
 
-        vcf = cyvcf2.VCF(inputfile)
+        # infile='gnomad.exomes.r2.0.2.sites.vcf.gz'
+        # outfile= 'gnomad_mongo.filter.txt'
 
-        codes=['AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female']
+        vcf = cyvcf2.VCF(infile)
 
-        filter=[]
-        for row in vcf:
-            temp =[]
-            temp.append(row.ID)
-            temp.append(row.CHROM)
-            temp.append(row.POS)
-            temp.append(row.REF)
-            temp.append(row.ALT)
-            temp.append(row.QUAL)
-            temp.append(row.FILTER)
-            for code in codes:
-                if row.INFO[code]:
-                    temp.append(row.INFO[code])
+        codes=[ 'DP' , \
+                'AC','AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female', \
+               'AF','AF_AFR','AF_AMR','AF_ASJ','AF_EAS','AF_FIN','AF_NFE','AF_OTH','AF_SAS','AF_Male','AF_Female', \
+               'AN','AN_AFR','AN_AMR','AN_ASJ','AN_EAS','AN_FIN','AN_NFE','AN_OTH','AN_SAS','AN_Male','AN_Female', \
+               'GC','GC_AFR','GC_AMR','GC_ASJ','GC_EAS','GC_FIN','GC_NFE','GC_OTH','GC_SAS','GC_Male','GC_Female', \
+               'Hom_AFR','Hom_AMR','Hom_ASJ','Hom_EAS','Hom_FIN','Hom_NFE','Hom_OTH','Hom_SAS','Hom_Male','Hom_Female' ]
+
+
+        with open(outfile,"w") as w:
+            header = ['gnomad-id','chr','pos','alt','ref','qual','filter', \
+                    'DP' , \
+                    'AC','AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female', \
+                    'AF','AF_AFR','AF_AMR','AF_ASJ','AF_EAS','AF_FIN','AF_NFE','AF_OTH','AF_SAS','AF_Male','AF_Female', \
+                    'AN','AN_AFR','AN_AMR','AN_ASJ','AN_EAS','AN_FIN','AN_NFE','AN_OTH','AN_SAS','AN_Male','AN_Female', \
+                    'GC','GC_AFR','GC_AMR','GC_ASJ','GC_EAS','GC_FIN','GC_NFE','GC_OTH','GC_SAS','GC_Male','GC_Female', \
+                    'Hom_AFR','Hom_AMR','Hom_ASJ','Hom_EAS','Hom_FIN','Hom_NFE','Hom_OTH','Hom_SAS','Hom_Male','Hom_Female',\
+                    'CSQ']
+            bunch=100000
+            count=1
+            filter=[]
+            w.writelines('\t'.join(str(j) for j in header) + '\n')
+            for row in vcf:
+                current =[]
+                current.append(row.ID)
+                current.append(row.CHROM)
+                current.append(row.POS)
+                current.append(row.REF)
+                current.append(row.ALT)
+                current.append(row.QUAL)
+                current.append(row.FILTER)
+
+                if row.CHROM not in ['X','Y']:
+                    for code in codes:
+                        if row.INFO[code]:
+                            current.append(row.INFO[code])
+                        else:
+                            current.append('na')
                 else:
-                    temp.append('na')
-            filter.append(temp)
-        df_filter=pd.DataFrame(filter)
-        df_filter.columns=['gnomad-id','chr','pos','alt','ref','qual','filter','AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female']
-        df_filter.to_csv(outfile,index=False)
+                    for code in codes[:34]:
+                        if row.INFO[code]:
+                            current.append(row.INFO[code])
+                        else:
+                            current.append('na')
+                    for code in codes[34:]:
+                        current.append('na')
+
+                current.append(row.INFO['CSQ'].split('|')[:10])
+                filter.append(current)
+
+                if len(filter) == bunch:
+                    w.writelines('\t'.join(str(j) for j in i) + '\n' for i in filter)
+                    print("processed " , count , " hundred thousand rows.")
+                    filter=[]
+                    count += 1
+            w.writelines(filter)
+            w.close()
 
 
 
@@ -102,7 +158,7 @@ try:
     options,args = parser.parse_args()
     infile = options.infile
     outfile = options.outfile
-    source = options.sample
+    source = options.source
     fileParser(infile, outfile, source)
 
 except TypeError:
