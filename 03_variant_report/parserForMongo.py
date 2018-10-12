@@ -86,9 +86,6 @@ def fileParser(infile, outfile, source):
 
     elif source == 'gnomad':
 
-        # infile='gnomad.exomes.r2.0.2.sites.vcf.gz'
-        # outfile= 'gnomad_mongo.filter.txt'
-
         vcf = cyvcf2.VCF(infile)
 
         codes=[ 'DP' , \
@@ -100,7 +97,7 @@ def fileParser(infile, outfile, source):
 
 
         with open(outfile,"w") as w:
-            header = ['gnomad-id','chr','pos','alt','ref','qual','filter', \
+            header = ['gnomad-id','chr','pos','ref','alt','qual','filter', \
                     'DP' , \
                     'AC','AC_AFR','AC_AMR','AC_ASJ','AC_EAS','AC_FIN','AC_NFE','AC_OTH','AC_SAS','AC_Male','AC_Female', \
                     'AF','AF_AFR','AF_AMR','AF_ASJ','AF_EAS','AF_FIN','AF_NFE','AF_OTH','AF_SAS','AF_Male','AF_Female', \
@@ -113,6 +110,9 @@ def fileParser(infile, outfile, source):
             filter=[]
             w.writelines('\t'.join(str(j) for j in header) + '\n')
             for row in vcf:
+                if not row.FILTER:
+                    print ('no filter',row.FILTER)
+
                 current =[]
                 current.append(row.ID)
                 current.append(row.CHROM)
@@ -129,23 +129,38 @@ def fileParser(infile, outfile, source):
                         else:
                             current.append('na')
                 else:
-                    for code in codes[:34]:
-                        if row.INFO[code]:
-                            current.append(row.INFO[code])
-                        else:
+                    if row.CHROM == 'X':
+                        for code in codes[:34]:
+                            if row.INFO[code]:
+                                current.append(row.INFO[code])
+                            else:
+                                current.append('na')
+                        for code in codes[34:]:
                             current.append('na')
-                    for code in codes[34:]:
-                        current.append('na')
+
+                    elif row.CHROM == 'Y':
+                        for code in codes[:34]:
+                            if code in ['AC_Male','AC_Female','AF_Male','AF_Female','AN_Male','AN_Female']:
+                                current.append('na')
+                            else:
+                                if row.INFO[code]:
+                                    current.append(row.INFO[code])
+                                else:
+                                    current.append('na')
+                        for code in codes[34:]:
+                            current.append('na')
 
                 current.append(row.INFO['CSQ'].split('|')[:10])
                 filter.append(current)
+                print(len(current))
+                print(len(filter))
 
                 if len(filter) == bunch:
                     w.writelines('\t'.join(str(j) for j in i) + '\n' for i in filter)
                     print("processed " , count , " hundred thousand rows.")
                     filter=[]
                     count += 1
-            w.writelines(filter)
+            w.writelines('\t'.join(str(j) for j in i) + '\n' for i in filter)
             w.close()
 
 
