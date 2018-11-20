@@ -24,6 +24,19 @@ plt.rcParams["font.size"] = (12)
 plt.ylim(0, df_idxstats['map_percent'].max()+2.5)
 sns.barplot(x='chromosome',y='map_percent',hue='tag',data=df_idxstats)
 plt.ylabel('Percent of mapped sequences')
-plt.savefig(tag_1+'.sort.bam.idxstats.plot.png')
+plt.savefig(tag_1+'.sorted.rmdups.filter.bam.idxstats.plot.png')
 plt.close()
 print('completed')
+
+
+# df_design = pd.read_csv('/home/hhadmin/exome/bamQC/cre_design.bed',sep='\t',header=None)
+# df_design.columns = ['chromosome','start','end']
+# total = df_design.shape[0]
+# df_design['count'] = df_design.groupby('chromosome')['chromosome'].transform('count')
+# df_design.drop_duplicates('chromosome',keep='first',inplace=True)
+# df_design['count'] = df_design['count']/total * 100
+# plt.rcParams["figure.figsize"] = (20,10)
+# plt.rcParams["font.size"] = (12)
+# sns.barplot(x='chromosome',y='count',hue='chromosome',data=df_design)
+# plt.savefig('cre_design_coverage.bed.png')
+# plt.close()

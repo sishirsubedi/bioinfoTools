@@ -24,9 +24,12 @@ print('coverage is ' + str(coverage) + 'x')
 
 
 df_file_1.columns = ['chromosome','design_start','design_end','count']
-tagline_1=str(sys.argv[1]).split('/')
-tag_1=tagline_1[len(tagline_1)-1].split('_')[0]
+# tagline_1=str(sys.argv[1]).split('/')
+# tag_1=tagline_1[len(tagline_1)-1].split('.')[0]
+tag_1="COV-1"
 df_file_1['tag'] = tag_1
+
+average_depth =  df_file_1['count'].mean()
 
 result=[]
 covx = np.arange(1,coverage, 1)
@@ -37,11 +40,20 @@ df_main = pd.DataFrame(result)
 df_main.columns = ['read_depth','average_count','tag']
 plt.rcParams["figure.figsize"] = (20,10)
 plt.rcParams["font.size"] = (12)
-plt.ylim(0,  max(df_main['average_count'].max(),df_main['average_count'].max())+2.5)
+plt.ylim(0,102.5)
 plt.xlim(1,coverage)
-sns.lineplot(x='read_depth',y='average_count',hue='tag',data=df_main)
-plt.xlabel("Cumulative Read Depth")
-plt.ylabel("% of Covered Target bases ")
+sns.lineplot(x='read_depth',y='average_count',data=df_main)
+plt.axvline(x=average_depth, color='k', linestyle='--')
+plt.xlabel("Read depth (average: "+ str(int(average_depth))+ "x)")
+plt.ylabel("Percentage of captured target bases")
 plt.savefig(tag_1+'_'+str(coverage)+'x_coverage_QC')
 plt.close()
-print('completed')
+print('plot completed')
+
+xoi = [10,30,50,100,150,200,250,300,350,400,450,500]
+df_x_coverage = df_main[df_main['read_depth'].isin(xoi)]
+sns.barplot(x=df_x_coverage['read_depth'],y=df_x_coverage['average_count'] )
+plt.xlabel("Read depth")
+plt.ylabel("Percentage of captured target bases")
+plt.savefig(tag_1+'_X_coverage_QC')
+plt.close()
