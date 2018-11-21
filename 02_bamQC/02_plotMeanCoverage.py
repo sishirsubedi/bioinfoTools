@@ -57,3 +57,11 @@ plt.xlabel("Read depth")
 plt.ylabel("Percentage of captured target bases")
 plt.savefig(tag_1+'_X_coverage_QC')
 plt.close()
+
+df_file_1.columns = ['chromosome','design_start','design_end','read_depth']
+plt.xlim(0,1000)
+sns.distplot(df_file_1['read_depth'],bins=300)
+plt.yticks([], [])
+plt.title('Target coverage distribution - uniformity')
+plt.savefig('Target_coverage_distribution')
+plt.close()
