@@ -19,8 +19,9 @@ df_file_1.drop_duplicates(compare,keep='first',inplace=True)
 df_file_1.reset_index(inplace=True)
 df_file_1.drop(['index'], 1,inplace=True)
 df_file_1.sort_values(compare,inplace=True)
-tagline_1=str(sys.argv[1]).split('.')
-tag_1=tagline_1[0]
+
+tagline_1=str(sys.argv[1]).split('/')
+tag_1=tagline_1[len(tagline_1)-1].split('.')[0]
 df_file_1['tag'] = tag_1
 
 plt.rcParams["figure.figsize"] = (20,10)

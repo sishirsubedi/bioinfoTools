@@ -1,8 +1,3 @@
-
-### example
-# /opt/python3/bin/python3 04_compareChrmap.py sample.sort.bam.idxstats
-
-
 import sys
 import matplotlib
 matplotlib.use('Agg')
@@ -16,9 +11,11 @@ df_idxstats.columns = ['chromosome','chr_length','mapped','unmapped']
 filter_indx = df_idxstats[df_idxstats['chromosome'].str.contains("_")].index
 df_idxstats.drop(filter_indx, inplace=True)
 df_idxstats['map_percent'] = df_idxstats['mapped']/df_idxstats['mapped'].sum() * 100
-tagline_1=str(sys.argv[1]).split('.')
-tag_1=tagline_1[0]
+
+tagline_1=str(sys.argv[1]).split('/')
+tag_1=tagline_1[len(tagline_1)-1].split('.')[0]
 df_idxstats['tag'] = tag_1
+
 plt.rcParams["figure.figsize"] = (20,10)
 plt.rcParams["font.size"] = (12)
 plt.ylim(0, df_idxstats['map_percent'].max()+2.5)
