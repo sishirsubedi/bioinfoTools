@@ -12,7 +12,7 @@ from mysql.connector import Error
 from mysql.connector import errorcode
 
 
-df = pd.read_csv("COV_7_8_snp_indel_filter.tsv",sep='\t')
+df = pd.read_csv("COV_1_2_snp_indel_filter.tsv",sep='\t')
 df_mut = df[['chrom','position','ref','var']]
 
 
