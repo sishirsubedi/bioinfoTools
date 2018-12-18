@@ -17,6 +17,7 @@ tag_1=tagline_1[len(tagline_1)-1].split('.')[0]
 df_file_1['tag'] = tag_1
 
 average_depth =  df_file_1['read_depth'].mean()
+print('average coverage is ' + str(average_depth) + 'x')
 
 result=[]
 covx = np.arange(1,coverage, 1)
