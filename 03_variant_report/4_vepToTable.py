@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import numpy as np
+from matplotlib.pyplot import figure
 
-sample="COV_1_2_R"
+sample="COV_1_2"
 
 with open(sample+"_snp_indel_filter.vep.vcf.txt") as myfile:
     head = [next(myfile) for x in range(2)]

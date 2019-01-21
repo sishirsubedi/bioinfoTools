@@ -77,8 +77,10 @@ df_coverage_below_10x = df_coverage_all[df_coverage_all['read_depth']<10]
 plotRawDepth(df_coverage_below_10x,tag_1+'_below_10x',0)
 df_coverage_below_10x.to_csv(tag_1+".CREcoverage.mean.b10x.bed",sep='\t',header=False,index=False)
 
-df_coverage_above_10x = df_coverage_all[(df_coverage_all['read_depth']>250) & (df_coverage_all['read_depth']<270) ]
-df_a10_sample = df_coverage_above_10x.sample(n=df_coverage_below_10x.shape[0], replace=False)
+# df_coverage_above_10x = df_coverage_all[(df_coverage_all['read_depth']>100) & (df_coverage_all['read_depth']<270) ]
+df_coverage_above_10x = df_coverage_all[(df_coverage_all['read_depth']>10)]
+# df_a10_sample = df_coverage_above_10x.sample(n=df_coverage_below_10x.shape[0], replace=False)
+df_a10_sample = df_coverage_above_10x
 df_a10_sample.to_csv(tag_1+".CREcoverage.mean.above10x.bed",sep='\t',header=False,index=False)
 
 
@@ -92,46 +94,37 @@ executeCommand(tag_1+".CREcoverage.mean.allx.bed", tag_1+".CREcoverage.mean.allx
 df_b10 = pd.read_csv(tag_1+".CREcoverage.mean.b10x.fa.out",sep='\t',header=None)
 getATCount(df_b10)
 
-
 df_above10 = pd.read_csv(tag_1+".CREcoverage.mean.above10x.fa.out",sep='\t',header=None)
 getATCount(df_above10)
 
-th_mean=df_above10['at_count'].mean()
-th_var=df_above10['at_count'].var()
-th_samples = np.random.normal(th_mean, 6.0, 12114)
-
-plt.xlim(0,100)
-sns.distplot( df_b10['at_count'] , color="red", label="AT% < 10x",hist=False)
-sns.distplot( df_above10['at_count'] , color="green", label="AT% (avg)x",hist=False)
-sns.distplot( th_samples , color="blue", label="AT% Theoretical",hist=False)
-plt.title(tag_1+" AT distribution over sequences")
-plt.xlabel("Mean AT %")
-plt.ylabel("Proportion of reads")
-plt.legend()
-plt.savefig('ATrich_coverage_uniformity_test')
-plt.close()
-
-
-#### just for design files
-# file1='/home/hhadmin/kits_comparison/v7_cre_comparision/in_CRE_corriell/COV-1.CREcoverage.mean.allx.fa.out'
-# file2='/home/hhadmin/kits_comparison/v7_cre_comparision/in_CRE_V1_corriell/COV-1.CREcoverage.mean.allx.fa.out'
-# file3='/home/hhadmin/kits_comparison/v7_cre_comparision/in_V7_corriell/XTHS_100ng_hg19/COV-1.CREcoverage.mean.allx.fa.out'
+# th_mean=df_above10['at_count'].mean()
+# th_var=df_above10['at_count'].var()
+# th_samples = np.random.normal(th_mean, 6.0, 12114)
 #
-# df_1 = pd.read_csv(file1,sep='\t',header=None)
-# df_1_mod = getATCount(df_1)
-#
-# df_2 = pd.read_csv(file2,sep='\t',header=None)
-# df_2_mod = getATCount(df_2)
-#
-# df_3 = pd.read_csv(file3,sep='\t',header=None)
-# df_3_mod = getATCount(df_3)
-#
-# sns.distplot( df_1_mod['at_count'] , color="red", label="cre_v2",hist=False)
-# sns.distplot( df_2_mod['at_count'] , color="green", label="cre_v1",hist=False)
-# sns.distplot( df_3_mod['at_count'] , color="blue", label="v7",hist=False)
-# plt.title("Comparison: AT distribution over sequences")
+# plt.xlim(0,100)
+# sns.distplot( df_b10['at_count'] , color="red", label="AT% < 10x",hist=False)
+# sns.distplot( df_above10['at_count'] , color="green", label="AT% (avg)x",hist=False)
+# sns.distplot( th_samples , color="blue", label="AT% Theoretical",hist=False)
+# plt.title(tag_1+" AT distribution over sequences")
 # plt.xlabel("Mean AT %")
 # plt.ylabel("Proportion of reads")
 # plt.legend()
-# plt.savefig('Comparison_ATrich_uniformity_test')
+# plt.savefig('ATrich_coverage_uniformity_test')
 # plt.close()
+
+# comparing with design file
+#### just for design files
+file1='/home/hhadmin/kits_comparison/v7_cre_comparision/in_CRE_corriell/DEMO.CREcoverage.mean.allx.fa.out'
+df_1 = pd.read_csv(file1,sep='\t',header=None)
+df_1_mod = getATCount(df_1)
+
+
+sns.distplot( df_1_mod['at_count'] , color="green", label="cre_v2_design",hist=False)
+sns.distplot( df_above10['at_count'] , color="blue", label=tag_1+"_average",hist=False)
+sns.distplot( df_b10['at_count'] , color="red", label=tag_1+"_below_10x",hist=False)
+plt.title("Comparison: AT distribution over sequences")
+plt.xlabel("Mean AT %")
+plt.ylabel("Proportion of reads")
+plt.legend()
+plt.savefig('Comparison_ATrich_uniformity_test')
+plt.close()

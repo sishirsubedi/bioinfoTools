@@ -2,24 +2,18 @@ import sys
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib_venn import venn3
 import pandas as pd
 import seaborn as sns
 import numpy as np
-from matplotlib_venn import venn3
-
 import mysql.connector
 from mysql.connector import Error
 from mysql.connector import errorcode
 
-
-df = pd.read_csv("COV_1_2_snp_indel_filter.tsv",sep='\t')
-df_mut = df[['chrom','position','ref','var']]
-
-
 def getDBInfo(table,chr,pos,ref,alt):
     present = 0
     try:
-        connection = mysql.connector.connect(host='localhost',database='ngs_test', user='', password='')
+        connection = mysql.connector.connect(host='localhost',database='ngs_test', user='hhadmin', password='dna3127')
         cursor = connection.cursor(prepared=True)
         if table=='cosmic':
             query = "select cosmicID from db_cosmic_grch37v86 where chr= %s and pos=%s and ref=%s and alt=%s"
@@ -28,7 +22,7 @@ def getDBInfo(table,chr,pos,ref,alt):
         elif table=='gnomad':
             query = "select AF from db_gnomad where chr= %s and pos=%s and ref=%s and alt=%s"
 
-        cursor.execute(query, (chr,pos,ref,alt))
+        cursor.execute(query, ('chr'+chr,pos,ref,alt))
 
         for row in cursor:
             res = [el.decode('utf-8') if type(el) is bytearray else el for el in row]
@@ -45,6 +39,13 @@ def getDBInfo(table,chr,pos,ref,alt):
     return present
 
 
+# sample='bcm_case_01'
+# df = pd.read_csv(sample+"_snp_indel_filter.vcf",sep='\t')
+df = pd.read_csv("bcm_snp_indel_filter.txt",sep='\t')
+# df_mut = df[['#CHROM','POS','REF','ALT']]
+df_mut = df[['chrom','position','ref','var']]
+df_mut.columns = ['chrom','position','ref','var']
+
 cosmic_ids=[]
 clinvar_ids=[]
 gnomad_ids=[]
@@ -57,7 +58,7 @@ df_mut['cosmic']=cosmic_ids
 df_mut['clinvar']=clinvar_ids
 df_mut['gnomad']=gnomad_ids
 
-df_mut.to_csv("snp_dbs.tsv",sep='\t',index=False)
+df_mut.to_csv("snp_dbs_bcm.tsv",sep='\t',index=False)
 
 
 total = df_mut.shape[0]
@@ -72,10 +73,6 @@ unq_gnomad = df_mut[(df_mut['cosmic']==0) & (df_mut['clinvar']==0) & (df_mut['gn
 unknown = total - all_3- all_2_cosmic_clinvar - all_2_cosmic_gnomad - all_2_clinvar_gnomad - unq_cosmic - unq_clinvar - unq_gnomad
 
 
-
-# Make the diagram
-# venn3(subsets = (10, 8, 22, 6,9,4,2))
-
 venn3(subsets = (unq_cosmic,unq_clinvar, all_2_cosmic_clinvar, unq_gnomad,all_2_cosmic_gnomad,all_2_clinvar_gnomad,all_3), set_labels = ('cosmic', 'clinvar', 'gnomad'))
-plt.savefig('dbs_venn')
+plt.savefig('dbs_venn_bcm')
 plt.close()
