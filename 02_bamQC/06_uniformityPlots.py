@@ -45,7 +45,7 @@ def plotRawDepth(df,tag,smooth):
         plt.close()
 
 
-def executeCommand(input,output):
+def getFASTA(input,output):
     command = "/opt/bedtools2/bin/bedtools getfasta -fi /home/doc/ref/ref_genome/ucsc.hg19.fasta -bed {} -tab -fo {} ".format(input,output)
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
@@ -64,67 +64,49 @@ def getATCount(df):
     return df
 
 
-df_coverage_all = pd.read_csv(sys.argv[1],header=None,sep='\t')
+DEPTH_CUTOFF=20
+SAMPLE_COVERAGE_BED = sys.argv[1]
+OUTPUT_DIR_SAMPLE=os.path.abspath(os.path.dirname(SAMPLE_COVERAGE_BED))
+SAMPLE=os.path.basename(SAMPLE_COVERAGE_BED).split('.')[0]
+print(SAMPLE)
+print(OUTPUT_DIR_SAMPLE)
+
+
+df_coverage_all = pd.read_csv(SAMPLE_COVERAGE_BED,header=None,sep='\t')
 df_coverage_all.columns = ['chromosome','design_start','design_end','read_depth']
-tagline_1=str(sys.argv[1]).split('/')
-tag_1=tagline_1[len(tagline_1)-1].split('.')[0]
-df_coverage_all['tag'] = tag_1
+df_coverage_all['tag'] = SAMPLE
 
-plotHistogram(df_coverage_all,tag_1)
-plotRawDepth(df_coverage_all,tag_1,1)
+df_coverage_all.to_csv(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.allx.bed",sep='\t',header=False,index=False)
 
-df_coverage_below_10x = df_coverage_all[df_coverage_all['read_depth']<10]
-plotRawDepth(df_coverage_below_10x,tag_1+'_below_10x',0)
-df_coverage_below_10x.to_csv(tag_1+".CREcoverage.mean.b10x.bed",sep='\t',header=False,index=False)
+df_coverage_below = df_coverage_all[df_coverage_all['read_depth']<DEPTH_CUTOFF]
+df_coverage_below.to_csv(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.b20x.bed",sep='\t',header=False,index=False)
 
-# df_coverage_above_10x = df_coverage_all[(df_coverage_all['read_depth']>100) & (df_coverage_all['read_depth']<270) ]
-df_coverage_above_10x = df_coverage_all[(df_coverage_all['read_depth']>10)]
-# df_a10_sample = df_coverage_above_10x.sample(n=df_coverage_below_10x.shape[0], replace=False)
-df_a10_sample = df_coverage_above_10x
-df_a10_sample.to_csv(tag_1+".CREcoverage.mean.above10x.bed",sep='\t',header=False,index=False)
+df_coverage_above = df_coverage_all[(df_coverage_all['read_depth']>=DEPTH_CUTOFF)]
+df_coverage_above.to_csv(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.above20x.bed",sep='\t',header=False,index=False)
 
-
-df_coverage_all.to_csv(tag_1+".CREcoverage.mean.allx.bed",sep='\t',header=False,index=False)
 
 ###create fasta file for specific regions
-executeCommand(tag_1+".CREcoverage.mean.b10x.bed", tag_1+".CREcoverage.mean.b10x.fa.out")
-executeCommand(tag_1+".CREcoverage.mean.above10x.bed", tag_1+".CREcoverage.mean.above10x.fa.out")
-executeCommand(tag_1+".CREcoverage.mean.allx.bed", tag_1+".CREcoverage.mean.allx.fa.out")
+getFASTA(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.allx.bed", OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.allx.fa.out")
+getFASTA(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.b20x.bed", OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.b20x.fa.out")
+getFASTA(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.above20x.bed", OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.above20x.fa.out")
 
-df_b10 = pd.read_csv(tag_1+".CREcoverage.mean.b10x.fa.out",sep='\t',header=None)
-getATCount(df_b10)
+df_all = pd.read_csv( OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.allx.fa.out",sep='\t',header=None)
+getATCount(df_all)
 
-df_above10 = pd.read_csv(tag_1+".CREcoverage.mean.above10x.fa.out",sep='\t',header=None)
-getATCount(df_above10)
+df_below = pd.read_csv( OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.b20x.fa.out",sep='\t',header=None)
+getATCount(df_below)
 
-# th_mean=df_above10['at_count'].mean()
-# th_var=df_above10['at_count'].var()
-# th_samples = np.random.normal(th_mean, 6.0, 12114)
-#
-# plt.xlim(0,100)
-# sns.distplot( df_b10['at_count'] , color="red", label="AT% < 10x",hist=False)
-# sns.distplot( df_above10['at_count'] , color="green", label="AT% (avg)x",hist=False)
-# sns.distplot( th_samples , color="blue", label="AT% Theoretical",hist=False)
-# plt.title(tag_1+" AT distribution over sequences")
-# plt.xlabel("Mean AT %")
-# plt.ylabel("Proportion of reads")
-# plt.legend()
-# plt.savefig('ATrich_coverage_uniformity_test')
-# plt.close()
-
-# comparing with design file
-#### just for design files
-file1='/home/hhadmin/kits_comparison/v7_cre_comparision/in_CRE_corriell/DEMO.CREcoverage.mean.allx.fa.out'
-df_1 = pd.read_csv(file1,sep='\t',header=None)
-df_1_mod = getATCount(df_1)
+df_above = pd.read_csv( OUTPUT_DIR_SAMPLE+"/"+SAMPLE+".CREcoverage.mean.above20x.fa.out",sep='\t',header=None)
+getATCount(df_above)
 
 
-sns.distplot( df_1_mod['at_count'] , color="green", label="cre_v2_design",hist=False)
-sns.distplot( df_above10['at_count'] , color="blue", label=tag_1+"_average",hist=False)
-sns.distplot( df_b10['at_count'] , color="red", label=tag_1+"_below_10x",hist=False)
-plt.title("Comparison: AT distribution over sequences")
+plt.xlim(0,100)
+sns.distplot( df_all['at_count'] , color="red", label="AT% (all)",hist=False)
+sns.distplot( df_below['at_count'] , color="green", label="AT% (<20x)",hist=False)
+sns.distplot( df_above['at_count'] , color="blue", label="AT% (>20x)",hist=False)
+plt.title(SAMPLE+" AT distribution over sequences")
 plt.xlabel("Mean AT %")
 plt.ylabel("Proportion of reads")
 plt.legend()
-plt.savefig('Comparison_ATrich_uniformity_test')
+plt.savefig(OUTPUT_DIR_SAMPLE+"/"+SAMPLE+'_ATrich_coverage_uniformity_test')
 plt.close()
