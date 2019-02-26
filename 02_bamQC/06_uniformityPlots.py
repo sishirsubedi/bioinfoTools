@@ -1,4 +1,5 @@
 import sys
+import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -104,7 +105,7 @@ plt.xlim(0,100)
 sns.distplot( df_all['at_count'] , color="red", label="AT% (all)",hist=False)
 sns.distplot( df_below['at_count'] , color="green", label="AT% (<20x)",hist=False)
 sns.distplot( df_above['at_count'] , color="blue", label="AT% (>20x)",hist=False)
-plt.title(SAMPLE+" AT distribution over sequences")
+plt.title(SAMPLE+" AT distribution")
 plt.xlabel("Mean AT %")
 plt.ylabel("Proportion of reads")
 plt.legend()
