@@ -26,14 +26,14 @@ plt.close()
 print('completed')
 
 
-# df_design = pd.read_csv('/home/hhadmin/exome/bamQC/cre_design.bed',sep='\t',header=None)
-# df_design.columns = ['chromosome','start','end']
-# total = df_design.shape[0]
-# df_design['count'] = df_design.groupby('chromosome')['chromosome'].transform('count')
-# df_design.drop_duplicates('chromosome',keep='first',inplace=True)
-# df_design['count'] = df_design['count']/total * 100
-# plt.rcParams["figure.figsize"] = (20,10)
-# plt.rcParams["font.size"] = (12)
-# sns.barplot(x='chromosome',y='count',hue='chromosome',data=df_design)
-# plt.savefig('cre_design_coverage.bed.png')
-# plt.close()
+df_design = pd.read_csv(sys.argv[2],header=None,sep='\t')
+df_design.columns = ['chromosome','start','end']
+total = df_design.shape[0]
+df_design['count'] = df_design.groupby('chromosome')['chromosome'].transform('count')
+df_design.drop_duplicates('chromosome',keep='first',inplace=True)
+df_design['count'] = df_design['count']/total * 100
+plt.rcParams["figure.figsize"] = (20,10)
+plt.rcParams["font.size"] = (12)
+sns.barplot(x='chromosome',y='count',hue='chromosome',data=df_design)
+plt.savefig('cre_design_coverage.bed.png')
+plt.close()

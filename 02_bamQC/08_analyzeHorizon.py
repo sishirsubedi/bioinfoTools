@@ -25,20 +25,20 @@ print(df_combine.shape)
 df_combine.to_csv(sample+".txt",sep='\t',index=False)
 
 
-## combine all three
-# df1=pd.read_csv("2016-01-13_RKO_v3.txt",sep='\t')
-# print(df1.shape)
-# df2=pd.read_csv("2016-01-13_SW48_v3.txt",sep='\t')
-# print(df2.shape)
-# df3=pd.read_csv("2016-01-13_HCT116_v3.txt",sep='\t')
-# print(df3.shape)
-#
-#
-# df_combine = pd.concat([df1,df2,df3])
-# print(df_combine.shape)
-# df_combine.drop_duplicates(keep='first',inplace=True)
-# print(df_combine.shape)
-# df_combine.to_csv("R_S_H_Combine.txt",sep='\t',index=False)
+# combine all three
+df1=pd.read_csv("2016-01-13_RKO_v3.txt",sep='\t')
+print(df1.shape)
+df2=pd.read_csv("2016-01-13_SW48_v3.txt",sep='\t')
+print(df2.shape)
+df3=pd.read_csv("2016-01-13_HCT116_v3.txt",sep='\t')
+print(df3.shape)
+
+
+df_combine = pd.concat([df1,df2,df3])
+print(df_combine.shape)
+df_combine.drop_duplicates(keep='first',inplace=True)
+print(df_combine.shape)
+df_combine.to_csv("R_S_H_Combine.txt",sep='\t',index=False)
 
 import sys
 import matplotlib

@@ -12,28 +12,17 @@ sample1="varscan"
 sample2="mutect"
 sample3="strelka"
 
-# df_1 = pd.read_csv("/home/environments/ngs_test/exomeAnalysis/COV-1_COV-2/varscan/COV-1_COV-2_varscan_output.snp.indel.filter.1percent_th.vcf.txt",sep='\t')
-# df_mut_1 = df_1[['CHROM','POS','REF','ALT']]
-#
-# df_2= pd.read_csv("/home/hhadmin/temp_wip/01_gatk_filter_combine.vcf.txt",sep='\t')
-# df_mut_2 = df_2[['CHROM','POS','REF','ALT']]
-#
-# df_3 = pd.read_csv("/home/environments/ngs_test/exomeAnalysis/COV-1_COV-2/strelka/strelka.filter.txt",sep='\t')
-# df_mut_3 = df_3[['CHROM','POS','REF','ALT']]
-#
-
-
-df_1 = pd.read_csv("/home/environments/ngs_test/exomeAnalysis/Paired/COV-1R_COV-2R/varscan/COV-1R_COV-2R.varscan.filter.vcf.txt",sep='\t')
+df_1 = pd.read_csv("/home/environments/ngs_test/exomeAnalysis/Paired/COLO-829_S5_COLO-829BL_S4/varscan/COLO-829_S5_COLO-829BL_S4.varscan.parafilter.crefilter",sep='\t')
 df_mut_1 = df_1[['CHROM','POS','REF','ALT']]
 
-df_2= pd.read_csv("/home/environments/ngs_test/exomeAnalysis/Paired/COV-1R_COV-2R/mutect/COV-1R_COV-2R.mutect.filter.vcf.txt",sep='\t')
+df_2= pd.read_csv("/home/environments/ngs_test/exomeAnalysis/Paired/COLO-829_S5_COLO-829BL_S4/mutect/COLO-829_S5_COLO-829BL_S4.mutect.parafilter.crefilter",sep='\t')
 df_mut_2 = df_2[['CHROM','POS','REF','ALT']]
 
-df_3 = pd.read_csv("/home/environments/ngs_test/exomeAnalysis/Paired/COV-1R_COV-2R/strelka/COV-1R_COV-2R.strelka.filter.vcf.txt",sep='\t')
+df_3 = pd.read_csv("/home/environments/ngs_test/exomeAnalysis/Paired/COLO-829_S5_COLO-829BL_S4/strelka/COLO-829_S5_COLO-829BL_S4.strelka.parafilter.crefilter",sep='\t')
 df_mut_3 = df_3[['CHROM','POS','REF','ALT']]
 
 
-df_ref = pd.read_csv("/home/hhadmin/exome_pipeline/02_variantCalling/COV_1_COV_2/reference_standard_creDesign.txt",sep='\t')
+df_ref = pd.read_csv("/home/hhadmin/exome_pipeline/RefStd/reference_standard_creDesign.txt",sep='\t')
 df_ref = df_ref[['CHROM','POS','REF','ALT']]
 
 cols=[]
@@ -77,5 +66,5 @@ plt.xticks(r, ['varscan','mutect','strelka'], fontweight='bold')
 plt.legend()
 plt.xlabel("variant caller")
 plt.ylabel("snps + indels")
-plt.savefig(sample+'_'+sample1+'_'+'_'+sample2+'_'+'_'+sample3+'_3bARPLOT')
+plt.savefig("/home/environments/ngs_test/exomeAnalysis/Paired/COLO-829_S5_COLO-829BL_S4/"+sample+'_'+sample1+'_'+'_'+sample2+'_'+'_'+sample3+'_3bARPLOT')
 plt.close()

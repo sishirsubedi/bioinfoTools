@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-
 df_bed = pd.read_csv(sys.argv[1],header=None,sep='\t')
 df_bed.columns = ['chromosome','design_start','design_end','design_base_num','count']
 

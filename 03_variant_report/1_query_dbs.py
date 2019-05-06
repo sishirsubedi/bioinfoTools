@@ -13,16 +13,17 @@ from mysql.connector import errorcode
 def getDBInfo(table,chr,pos,ref,alt):
     present = 0
     try:
-        connection = mysql.connector.connect(host='localhost',database='ngs_test', user='hhadmin', password='dna3127')
+        connection = mysql.connector.connect(host='localhost',database='', user='', password='')
         cursor = connection.cursor(prepared=True)
         if table=='cosmic':
-            query = "select cosmicID from db_cosmic_grch37v86 where chr= %s and pos=%s and ref=%s and alt=%s"
+            query = "select cosmicID from db_cosmic_grch37v88 where chr= %s and pos=%s and ref=%s and alt=%s"
         elif table=='clinvar':
-            query = "select clinvarID from db_clinvar where chr= %s and pos=%s and ref=%s and alt=%s"
+            query = "select clinvarID from db_clinvar_42019 where chr= %s and pos=%s and ref=%s and alt=%s"
         elif table=='gnomad':
-            query = "select AF from db_gnomad where chr= %s and pos=%s and ref=%s and alt=%s"
-
-        cursor.execute(query, ('chr'+chr,pos,ref,alt))
+            query = "select AF from db_gnomad_r211 where chr= %s and pos=%s and ref=%s and alt=%s"
+        elif table=='g1000':
+            query = "select g1000ID from db_g1000_phase3v1 where chr= %s and pos=%s and ref=%s and alt=%s"
+        cursor.execute(query, (chr,pos,ref,alt))
 
         for row in cursor:
             res = [el.decode('utf-8') if type(el) is bytearray else el for el in row]
@@ -39,26 +40,32 @@ def getDBInfo(table,chr,pos,ref,alt):
     return present
 
 
-# sample='bcm_case_01'
+sample="COLO-829_S5_COLO-829BL_S4.25REFONLY.txt"
 # df = pd.read_csv(sample+"_snp_indel_filter.vcf",sep='\t')
-df = pd.read_csv("bcm_snp_indel_filter.txt",sep='\t')
-# df_mut = df[['#CHROM','POS','REF','ALT']]
-df_mut = df[['chrom','position','ref','var']]
+df = pd.read_csv(sample,sep='\t')
+df_mut = df[['CHROM','POS','REF','ALT']]
+# df_mut = df[['chrom','position','ref','var']]
 df_mut.columns = ['chrom','position','ref','var']
 
 cosmic_ids=[]
 clinvar_ids=[]
 gnomad_ids=[]
+g1000_ids=[]
+
 for indx, row in df_mut.iterrows():
+    print(row['chrom'],row['position'],row['ref'],row['var'])
     cosmic_ids.append(getDBInfo('cosmic',row['chrom'],row['position'],row['ref'],row['var']))
     clinvar_ids.append(getDBInfo('clinvar',row['chrom'],row['position'],row['ref'],row['var']))
     gnomad_ids.append(getDBInfo('gnomad',row['chrom'],row['position'],row['ref'],row['var']))
+    g1000_ids.append(getDBInfo('g1000',row['chrom'],row['position'],row['ref'],row['var']))
 
 df_mut['cosmic']=cosmic_ids
 df_mut['clinvar']=clinvar_ids
 df_mut['gnomad']=gnomad_ids
+df_mut['g1000']=gnomad_ids
 
-df_mut.to_csv("snp_dbs_bcm.tsv",sep='\t',index=False)
+
+df_mut.to_csv(sample+".dbout.tsv",sep='\t',index=False)
 
 
 total = df_mut.shape[0]

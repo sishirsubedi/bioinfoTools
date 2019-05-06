@@ -31,6 +31,10 @@ df_snp_mut_2 = df_snp_2[['CHROM','POS','REF','ALT']]
 
 
 df_join = pd.merge(left=df_snp_mut_1, right=df_snp_mut_2, on=['CHROM','POS','REF','ALT'],how='outer',indicator=True)
+
+df_join.to_csv(OUTPUT_DIR_SAMPLE+'/'+SAMPLE_1+".2VENN.OUT.txt",sep='\t',index=False)
+
+
 BOTH = df_join[df_join['_merge']=='both'].shape[0]
 METHOD_1_NUM = df_join[df_join['_merge']=='left_only'].shape[0]
 METHOD_2_NUM = df_join[df_join['_merge']=='right_only'].shape[0]
