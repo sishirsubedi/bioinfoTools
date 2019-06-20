@@ -1,3 +1,9 @@
+# Based on this paper--
+#
+# SNP panel identification assay (SPIA): a
+# genetic-based assay for the identification
+# of cell lines
+#
 #  /opt/python3/bin/python3 /home/hhadmin/scripts/bioinfoTools/03_variant_report/9_compareSNPs.py /home/environments/ngs_test/exomeAnalysis/190531_NB552038_0012_AHLVT2BGX9/UNpaired/Exome8-N_S6/varscan/Exome8-N_S6.comb.vcf /home/environments/ngs_test/exomeAnalysis/190531_NB552038_0012_AHLVT2BGX9/UNpaired/Exome8-T_S7/varscan/Exome8-T_S7.comb.vcf
 # RAW:
 # 603770 783927 428533 608690 175237 29.023800453815195
@@ -8,6 +14,7 @@
 
 import sys
 import pandas as pd
+from scipy.stats import binom
 
 def filterSNP(dfn):
     extra_cols=['GT','VF','DP','AD']
@@ -29,6 +36,24 @@ def filterSNP(dfn):
 
     return dfn
 
+
+def calcDistance(df1,df2):
+
+    match = pd.merge(df1,df2,on=['#CHROM', 'POS', 'REF'],how='outer',indicator=True)
+
+    vNSNPs = match[match['_merge']=='both'].shape[0]
+
+    match = match[match['_merge']=='both']
+
+    match = match[['#CHROM', 'POS', 'REF','ALT_x','ALT_y']]
+
+    match['filter']=[1 if x[0]!=x[1] else 0 for x in zip(match['ALT_x'], match['ALT_y'])]
+
+    print(binom.pmf(match[match['filter']==1].shape[0],vNSNPs,1/1000))
+
+    return (match[match['filter']==1].shape[0] / vNSNPs)
+
+
 def printRes(df1,df2):
 
     result=pd.merge(df1,df2,on=['#CHROM', 'POS', 'REF', 'ALT'],how='outer',indicator=True)
@@ -44,6 +69,9 @@ def printRes(df1,df2):
 
     print (df1.shape[0],',', df2.shape[0],',', normal,',', tumor,',', match,',', match_p)
 
+    return (normal+tumor, match)
+
+
 
 snpf1=sys.argv[1]
 snpf2=sys.argv[2]
@@ -58,4 +86,6 @@ df1_f1 = filterSNP(df1)
 df2_f1 = filterSNP(df2)
 
 print("HQ:")
-printRes(df1_f1,df2_f1)
+df_match = printRes(df1_f1,df2_f1)
+
+print("Distance:",calcDistance(df1_f1,df2_f1))
