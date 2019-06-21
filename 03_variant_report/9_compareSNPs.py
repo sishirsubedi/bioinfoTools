@@ -4,12 +4,7 @@
 # genetic-based assay for the identification
 # of cell lines
 #
-#  /opt/python3/bin/python3 /home/hhadmin/scripts/bioinfoTools/03_variant_report/9_compareSNPs.py /home/environments/ngs_test/exomeAnalysis/190531_NB552038_0012_AHLVT2BGX9/UNpaired/Exome8-N_S6/varscan/Exome8-N_S6.comb.vcf /home/environments/ngs_test/exomeAnalysis/190531_NB552038_0012_AHLVT2BGX9/UNpaired/Exome8-T_S7/varscan/Exome8-T_S7.comb.vcf
-# RAW:
-# 603770 783927 428533 608690 175237 29.023800453815195
-# HQ:
-# 72178 65698 13207 6727 58971 89.7607233096898
-# normal tumor n-only t-only match match%
+
 
 
 import sys
@@ -54,9 +49,10 @@ def calcDistance(df1,df2):
     return (match[match['filter']==1].shape[0] / vNSNPs)
 
 
-def printRes(df1,df2):
+def compareSNPS(df1,df2):
 
     result=pd.merge(df1,df2,on=['#CHROM', 'POS', 'REF', 'ALT'],how='outer',indicator=True)
+
     normal = result[result['_merge']=='left_only'].shape[0]
     tumor = result[result['_merge']=='right_only'].shape[0]
     match = result[result['_merge']=='both'].shape[0]
@@ -69,23 +65,40 @@ def printRes(df1,df2):
 
     print (df1.shape[0],',', df2.shape[0],',', normal,',', tumor,',', match,',', match_p)
 
-    return (normal+tumor, match)
 
+def horizonProfile(df1,tag):
+
+    horizon='/home/hhadmin/exome_pipeline/RefStd/horizon_filter.txt'
+    dfhorizon=pd.read_csv(horizon,sep='\t')
+
+    df_filt = pd.DataFrame()
+    for indx,row in dfhorizon.iterrows():
+        print(row['chrom'])
+        df_filt = df_filt.append(df1[(df1['#CHROM']==row['chrom']) & ( (df1['POS']>=row['start']) & (df1['POS']<=row['end']) )],ignore_index=True)
+        print(df_filt.shape)
+    df_filt.columns = df1.columns
+    df_filt.to_csv(tag+'.filter.txt',index=False,sep='\t')
 
 
 snpf1=sys.argv[1]
 snpf2=sys.argv[2]
+out_dir=sys.argv[3]
+profile=sys.argv[4]
 
 df1=pd.read_csv(snpf1,sep='\t',skiprows=1)
 df2=pd.read_csv(snpf2,sep='\t',skiprows=1)
 
 print("RAW:")
-printRes(df1,df2)
+# compareSNPS(df1,df2)
 
 df1_f1 = filterSNP(df1)
 df2_f1 = filterSNP(df2)
 
 print("HQ:")
-df_match = printRes(df1_f1,df2_f1)
+# compareSNPS(df1_f1,df2_f1)
 
 print("Distance:",calcDistance(df1_f1,df2_f1))
+
+if profile:
+    horizonProfile(df1_f1,out_dir+"normal")
+    horizonProfile(df2_f1,out_dir+'tumor')
