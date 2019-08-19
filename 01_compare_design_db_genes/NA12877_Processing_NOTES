@@ -1,0 +1,81 @@
+## steps to produce req. file
+#https://www.illumina.com/platinumgenomes.html
+#https://github.com/Illumina/PlatinumGenomes/blob/master/files/2017-1.0.files
+https://s3.eu-central-1.amazonaws.com/platinum-genomes/2017-1.0/hg19/small_variants/NA12877/NA12877.vcf.gz
+https://s3.eu-central-1.amazonaws.com/platinum-genomes/2017-1.0/hg19/small_variants/NA12877/NA12877.vcf.gz.tbi
+https://s3.eu-central-1.amazonaws.com/platinum-genomes/2017-1.0/hg19/small_variants/NA12878/NA12878.vcf.gz
+https://s3.eu-central-1.amazonaws.com/platinum-genomes/2017-1.0/hg19/small_variants/NA12878/NA12878.vcf.gz.tbi
+
+
+### select columns
+zcat NA12877.vcf.gz | awk 'BEGIN { FS="\t"} /^c/ { print $1 "\t" $2 "\t" $4 "\t" $5  "\t" $10  } ' > NA12877.vcf
+
+## select only 1|0, 1|1, 0|0, 0|1
+awk ' {  if ( !( $5 ~ /2/ ) ) { print $0 } } '  NA12877.vcf > NA12877.v2.vcf
+
+## prep for intersect
+awk ' { print $1 "\t" $2 "\t" $2+1 "\t" $3  "\t" $4 "\t" $5  }'  NA12877.v2.vcf > NA12877.v3.vcf
+
+## get cre design exon region
+/opt/bedtools2/bin/bedtools intersect -a NA12877.v3.vcf -b /home/hhadmin/exome_pipeline/01_bamQC/cre_design_ucsc_exon.txt_filter.csv -wa > NA12877.v4.cre_design_ucsc_exon.vcf
+
+## convert to vcf format for annotation
+awk ' { print $1 "\t" $2 "\t.\t"  $4  "\t" $5 "\t.\t.\t" $6  }' NA12877.v4.cre_design_ucsc_exon.vcf > NA12877.v4.cre_design_ucsc_exon.v2.vcf
+
+## get unique variants of NA12877
+comm -23 <(sort NA12877.v4.cre_design_ucsc_exon.v2.vcf | uniq) <(sort NA12878.v4.cre_design_ucsc_exon.v2.vcf | uniq) > NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf
+## above may not be correct becuase it does line by line comparison
+## this is not important in this case, but we can use the following python program to find unique entries
+## using python --
+import pandas as pd
+seven = pd.read_csv("NA12877.v4.cre_design_ucsc_exon.v2.vcf",sep='\t',header=None)
+seven.head(2)
+seven.columns=['chr','pos','id','ref','alt','id2','id3','gt']
+seven.head(2)
+eight = pd.read_csv("NA12878.v4.cre_design_ucsc_exon.v2.vcf",sep='\t',header=None)
+eight.columns=['chr','pos','id','ref','alt','id2','id3','gt']
+seven.shape
+eight.shape
+dfjoin = pd.merge(seven,eight, on=['chr','pos','ref','alt'],how='outer',indicator=True)
+dfjoin[dfjoin['_merge']=="right_only"].shape
+dfjoin[dfjoin['_merge']=="left_only"].shape
+dfjoin[dfjoin['_merge']=="both"].shape
+dfjoin[dfjoin['_merge']=="left_only"].to_csv("NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf",index=False,sep='\t')
+
+
+## ANNOTATE USING VEP using tmb assay VEP parameters.
+/opt/vep_94/ensembl-tools-release-94/vep_94/ensembl-vep/vep \
+-i NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf \
+-o NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf.vep \
+--offline \
+--dir_cache /opt/vep_94/ensembl-tools-release-94/cache \
+--vcf \
+--refseq \
+--pick_allele \
+--sift p \
+--polyphen p \
+--hgvs \
+--symbol \
+--vcf \
+--pubmed   \
+--force_overwrite \
+--fasta /home/doc/ref/ref_genome/Homo_sapiens.GRCh37.73.dna_sm.primary_assembly.fa   &
+
+### manually clean up VEP file
+NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf.vep  --> NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf.vep.txt
+
+### get gene names from GENE50 assay
+awk '{ print $6 } ' 01_CHP2.20131001.designed.bed | cut -d "=" -f2 | uniq > 01_CHP2.20131001.designed.gene_names.bed
+
+### get mutations from NA12877 that overlaps with GENE50 genes
+import pandas as pd
+vep = pd.read_csv("NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf.vep.txt", sep='\t')
+vep.head(2)
+genes = pd.read_csv("01_CHP2.20131001.designed.gene_names.bed", sep='\t',header=None)
+genes.shape
+genes.columns =['GENE']
+vep.head(2)
+genes.head(2)
+gene_names = [x[0] for x in genes.values]
+vep['match'] = vep.apply(lambda row: 1 if str(row['GENE']) in gene_names else 0 ,axis=1 )
+vep[vep['match']==1].to_csv("NA12877.v4.cre_design_ucsc_exon.v3.unique.vcf.vep.GENE50.txt",index=False,sep='\t')
