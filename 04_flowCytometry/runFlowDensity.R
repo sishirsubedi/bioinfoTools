@@ -1,11 +1,3 @@
-#test if there is at least one argument: if not, return an error
-args <- commandArgs(trailingOnly = TRUE)
-if (length(args)==0) {
-  stop("At least one argument must be supplied (input file).n", call.=FALSE)
-} else if (length(args)==1) {
-  print("Starting program..file-")
-  print(args[1])
-}
 
 library(flowCore)
 library(flowDensity)
@@ -24,32 +16,193 @@ basicGate <- function (flow_data){
     return(Subset(flow_data,rectGate))
 }
 
-applyFlowDensity <- function(flow_data,markers,plot=TRUE) {
+gatedFD <- function(flow_data,markers,file_name){
 
-flow_data <- basicGate(flow_data)
+  fd_result <- NULL
 
-fd_result <- flowDensity(flow_data ,channels = markers, position = c(T,F),ellip.gate = T,scale = .99 )
+  if ( (markers[1]=="PE.A") && (markers[2]=="SSC.A") ){
 
-print(paste(markers[1],markers[2],fd_result@cell.count,fd_result@proportion))
+      # First call to flowDensity
+      fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), percentile=c(0.25, NA))
+      # Second call to flowDensity
+      fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), gates=c(FALSE, NA),percentile=c(NA, 0.99))
+      fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]),ellip.gate = T,scale = .99 )
+      png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+      plot(flow_data ,fd_result)
+      dev.off()
 
-if (plot){
-    png(paste("fd_result_",markers[1],"_",markers[2],".png"))
-    plotDens(flow_data ,markers);
+   } else if ( (markers[1]=="V450.A") && (markers[2]=="SSC.A") ) {
+
+   # First call to flowDensity
+   fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), percentile=c(0.25, NA))
+   # Second call to flowDensity
+   fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), gates=c(FALSE, NA),percentile=c(NA, 0.95))
+   fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]),ellip.gate = T,scale = .99 )
+   png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+   plot(flow_data ,fd_result)
+   dev.off()
+
+    } else if ( (markers[1]=="APC.A") && (markers[2]=="SSC.A") && (markers[3]=="POS_NEG")) {
+
+    # First call to flowDensity
+    fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), percentile=c(0.95, NA))
+    # Second call to flowDensity
+    fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), gates=c(FALSE, NA),percentile=c(NA, 0.99))
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+    plot(flow_data ,fd_result)
+    dev.off()
+
+    } else if ( (markers[1]=="APC.A") && (markers[2]=="SSC.A") && (markers[3]=="POS_POS")) {
+
+    # First call to flowDensity
+    fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(TRUE, TRUE), percentile=c(0.95, NA))
+    # Second call to flowDensity
+    fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, TRUE), upper=c(NA,FALSE),use.upper=c(FALSE,TRUE))
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,T),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+    plot(flow_data ,fd_result)
+    dev.off()
+
+    }else if ( (markers[1]=="PE.A") && (markers[2]=="APC.A") && (markers[3]=="POS_POS")) {
+
+    # First call to flowDensity
+    fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(TRUE, TRUE), percentile=c(0.95, NA))
+    # Second call to flowDensity
+    fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, TRUE), upper=c(NA,FALSE),use.upper=c(FALSE,TRUE))
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,T),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+    plot(flow_data ,fd_result)
+    dev.off()
+
+    }else if ( (markers[1]=="PE.A") && (markers[2]=="APC.A") && (markers[3]=="NEG_POS")) {
+
+    # First call to flowDensity
+    fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(FALSE, TRUE), percentile=c(0.25, NA))
+    # Second call to flowDensity
+    fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(FALSE, TRUE),percentile=c(0.95, NA))
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(F,T),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+    plot(flow_data ,fd_result)
+    dev.off()
+
+    }else if ( (markers[1]=="PerCP.Cy5.5.A") && (markers[2]=="APC.H7.A") && (markers[3]=="POS_NEG")) {
+
+    cd4_8.gate <- rectangleGate(filterId="CDGate","PerCP.Cy5.5.A"=c(2.5,10),"APC.H7.A"=c(2.5,10))
+
+    print(dim(as.data.frame(exprs(flow_data))))
+
+    flow_data <- Subset(flow_data,cd4_8.gate)
+
+    print(dim(as.data.frame(exprs(flow_data))))
+
+    gate.1 <- deGate(flow_data, channel = "PerCP.Cy5.5.A")
+    gate.2 <- deGate(flow_data,channel = "APC.H7.A")
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(TRUE, FALSE),gates=c(gate.1,gate.2),percentile=c(NA,0.90),use.percentile=c(FALSE,TRUE) )
+
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+    plot(flow_data ,fd_result)
+    dev.off()
+
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_raw.png"))
+    plotDens(flow_data ,c(markers[1],markers[2]))
     lines(fd_result@filter,type="l")
     dev.off()
-  }
+
+
+    }else if ( (markers[1]=="PerCP.Cy5.5.A") && (markers[2]=="APC.H7.A") && (markers[3]=="NEG_POS")) {
+
+    cd4_8.gate <- rectangleGate(filterId="CDGate","PerCP.Cy5.5.A"=c(2.5,10),"APC.H7.A"=c(2.5,10))
+
+
+    print(dim(as.data.frame(exprs(flow_data))))
+
+    flow_data <- Subset(flow_data,cd4_8.gate)
+
+    print(dim(as.data.frame(exprs(flow_data))))
+
+    # First call to flowDensity
+    fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(FALSE,TRUE),upper=c(TRUE,NA),use.upper=c(TRUE,FALSE))
+    # Second call to flowDensity
+    fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(FALSE,TRUE),upper=c(NA,FALSE),use.upper=c(FALSE,TRUE))
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(FALSE,TRUE),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_dist_plot.png"))
+    plot(flow_data ,fd_result)
+    dev.off()
+
+    png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_raw.png"))
+    plotDens(flow_data ,c(markers[1],markers[2]))
+    lines(fd_result@filter,type="l")
+    dev.off()
+
+
+    }
+
+  return(fd_result)
 }
 
-###read data
-flow_data <- read.FCS(args[1],transformation=FALSE,alter.names=TRUE)
+applyFlowDensity <- function(flow_data,markers,plot,file_name) {
 
-####transform data
-df_allcolnames <- colnames(as.data.frame(exprs(flow_data)))
-df_colnames <- setdiff(df_allcolnames, c("Time","FSC.A","FSC.H","FSC.W","SSC.A","SSC.H","SSC.W"))
-logTrans= logTransform(transformationId="defaultLogTransform", logbase=10, r=1, d=1)
-trans <- transformList(df_colnames, logTrans)
-flow_data_trans <- transform(flow_data, trans)
+    flow_data <- basicGate(flow_data)
 
-##flow density
-markers <- c("FITC.A","SSC.A")
-applyFlowDensity(flow_data_trans,markers,plot=FALSE)
+    fd_result <- gatedFD(flow_data,markers,file_name)
+
+    print(paste(markers[1],markers[2],markers[3],fd_result@cell.count,fd_result@proportion))
+
+    if (plot){
+        png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],".png"))
+        plotDens(flow_data ,c(markers[1],markers[2]))
+        lines(fd_result@filter,type="l")
+        dev.off()
+      }
+
+    marker_index <- gsub(',',';',toString(fd_result@index))
+    return(paste(",",paste("[",markers[1],markers[2],markers[3],"]"),",",fd_result@cell.count,",",fd_result@proportion,",",marker_index))
+}
+
+
+file_path <- "/home/hhadmin/flowCyto/data/PEA-SSCA"
+out_path <- "/home/hhadmin/flowCyto/data/RESULTS/"
+file_list <- list.files(file_path,full.names=TRUE)
+
+result_summary <- list()
+
+for (i in 1:length(file_list)){
+
+  if(i>2){break;}
+
+  flow_data <- read.FCS(file_list[i],transformation=FALSE,alter.names=TRUE)
+  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][7],"_")[[1]][1]
+  print("processing...")
+  print(file_list[i])
+  print(file_name)
+
+  ####transform data
+  df_allcolnames <- colnames(as.data.frame(exprs(flow_data)))
+  df_colnames <- setdiff(df_allcolnames, c("Time","FSC.A","FSC.H","FSC.W","SSC.A","SSC.H","SSC.W"))
+  logTrans= logTransform(transformationId="defaultLogTransform", logbase=10, r=1, d=1)
+  trans <- transformList(df_colnames, logTrans)
+  flow_data_trans <- transform(flow_data, trans)
+
+
+  markers_list <- list(
+                    # c("PE.A","SSC.A","POS_NEG"))
+                    # c("APC.A","SSC.A","POS_NEG"),
+                    # c("APC.A","SSC.A","POS_POS"),
+                    # c("PE.A","APC.A","POS_POS"),
+                    # c("PE.A","APC.A","NEG_POS"),
+                     c("PerCP.Cy5.5.A","APC.H7.A","POS_NEG"),
+                     c("PerCP.Cy5.5.A","APC.H7.A","NEG_POS"))
+
+  for ( marker in markers_list ){
+
+    ##flow density
+    res <- applyFlowDensity(flow_data_trans,c(marker[1],marker[2],marker[3]),TRUE,paste(out_path,file_name))
+    result_summary[[length(result_summary)+1]] <- list(paste(file_name,",",res))
+
+  }
+
+}
+
+#print(result_summary)
+write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,file_name,"_result.csv"), quote=F,sep=",",row.names=F,col.names=F)
