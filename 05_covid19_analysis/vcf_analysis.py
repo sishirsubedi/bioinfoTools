@@ -1,0 +1,87 @@
+""" analyze vcf files
+
+##### example:
+
+ /opt/python3/bin/python3 vcf_analysis.py \
+ --request "get-strains" \
+ --alignment "/home/tmhsxs240/COVID_19/data/6_24/6_24_vcfs/" \
+ --output "/home/tmhsxs240/COVID_19/data/Ns_Strain_Comparison/vcfs_analysis.csv"
+
+"""
+
+import pandas as pd
+import numpy as np
+import argparse
+import os
+import re
+from Bio import AlignIO, SeqIO, Entrez
+
+def analyzePositionVariant(vcfs_directory,position,out_file):
+
+    print ("processing.....vcfs")
+
+    vcfs = os.listdir(vcfs_directory)
+    combine = []
+    failed = 0
+    for vcf_file in vcfs:
+        try:
+            df = pd.read_csv(vcfs_directory+vcf_file,sep="\t",skiprows=9)
+            df = df[['POS','REF','ALT','QUAL']]
+            df.POS = df.POS.astype(int)
+
+            #check for D614G mutation
+            df = df[ ( (df.POS==posistion) & (df.REF=="A") & (df.ALT=="G") ) ]
+
+            if df.shape[0] == 1:
+                temp = []
+                temp.append(vcf_file.split(".")[0])
+                temp.append(df.iloc[0,0])
+                temp.append(df.iloc[0,1])
+                temp.append(df.iloc[0,2])
+                temp.append(df.iloc[0,3])
+                combine.append(temp)
+            else:
+                temp = []
+                temp.append(vcf_file.split(".")[0])
+                temp.append("NotFound")
+                combine.append(temp)
+        except:
+            failed += 1
+            print("failed number:"+str(failed)+"---"+vcf_file)
+    df_combine = pd.DataFrame(combine,columns=["Strain","POS","REF","ALT","QUAL"])
+
+    df_combine["Strain"] = [x.replace("-r1","").replace("_r1","").replace("r1","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-r2","").replace("_r2","").replace("r2","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-r3","").replace("_r3","").replace("r3","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("v3","").replace("V3","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("_","-") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-0","-") for x in df_combine["Strain"].values]
+
+    print(df_combine.shape)
+    ## if repeat then keep a strain with high quality variant
+    df_combine.POS = df_combine.POS.astype(str)
+    df_combine.sort_values(["POS","QUAL"],inplace=True)
+    df_combine.drop_duplicates("Strain",inplace=True)
+    print(df_combine.shape)
+
+    if out_file != None:
+        df_combine.to_csv(out_file,index=False)
+    else:
+        return df_combine
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description="Assign mutation status, sequence quality, and alignment status to strain",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--request", help="task to perform")
+    parser.add_argument("--vcf", help="vcfs file")
+    parser.add_argument("--output", help="output file")
+    args = parser.parse_args()
+
+    if args.request == "get-strains":
+        getStrains(args.alignment,args.output)
+    elif args.request == "mutations-table":
+        tableGenomicMutations(args.alignment,args.output)
