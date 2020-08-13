@@ -16,6 +16,55 @@ import os
 import re
 from Bio import AlignIO, SeqIO, Entrez
 
+
+def analyzeVCF(vcfs_directory,filter=False,out_file=None):
+
+    vcfs = os.listdir(vcfs_directory)
+
+    print("----VCF analysis ----")
+
+    df_combine = pd.DataFrame()
+    failed = 0
+    for vcf_file in vcfs:
+        try:
+            df = pd.read_csv(vcfs_directory+vcf_file,sep="\t",skiprows=9)
+            df["Strain"] = vcf_file.split(".")[0]
+            df["Primary_Call"] = [x.split(";")[0].split("=")[1] for x in df.INFO.values]
+            df = df[["Strain","POS","REF","ALT","QUAL","Primary_Call"]]
+            df_combine = pd.concat([df_combine,df],axis=0)
+        except:
+            failed += 1
+            print("failed number:"+str(failed)+"---"+vcf_file)
+
+    print("Total strains failed i.e. could not read file : " + str(failed))
+    print("Total strains with data : " + str(len(df_combine["Strain"].unique())))
+
+    ## remove repeat variants
+    df_combine["Strain"] = [x.replace("v3","").replace("combo","").replace("-r1","").replace("_r1","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-0","-") for x in df_combine["Strain"].values]
+
+    df_combine.drop_duplicates(["Strain","POS","REF","ALT"],inplace=True)
+
+    total_samples = len(df_combine["Strain"].unique())
+
+    print("Total strains after removing repeats before vcf filter: " + str(total_samples))
+
+
+    #### filters
+    df_combine = df_combine[df_combine["ALT"] == df_combine["Primary_Call"]]
+
+    #filter quality
+
+    if filter:
+        df_combine["QUAL"] = df_combine["QUAL"].astype(float)
+        df_combine = df_combine[df_combine["QUAL"]>=50.0]
+
+    if out_file != None:
+        df_combine.to_csv(out_file,index=False)
+    else:
+        return df_combine
+
+
 def analyzePositionVariant(vcfs_directory,position,out_file):
 
     print ("processing.....vcfs")

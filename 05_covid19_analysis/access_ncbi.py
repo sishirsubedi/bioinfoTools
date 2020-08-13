@@ -4,7 +4,7 @@ from Bio import AlignIO, SeqIO, Entrez
 
 #### get nsp12 protein sequence from ncbi
 Entrez.email = "sample@example.org"
-handle = Entrez.efetch(db="nucleotide", id="NC_045512.2", rettype="gb",retmode="text")
+handle = Entrez.efetch(db="nucleotide", id="MN908947.3", rettype="gb",retmode="text")
 record = SeqIO.read(handle, "genbank")
 handle.close()
 

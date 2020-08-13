@@ -20,8 +20,6 @@ def bashCommunicator(command,output_expected=False):
         if output_expected:
             return [x for x in stdout.split("\n")]
 
-
-
 def analyzeVCF(vcfs_directory,region,region_name,out_dir,reported):
 
     vcfs = os.listdir(vcfs_directory)
@@ -141,32 +139,47 @@ def analyzeVCF(vcfs_directory,region,region_name,out_dir,reported):
     df_ref.columns = ['VCF_Genomic_Locus', 'VCF_Reference','VCF_Mismatch_Count', 'VCF_Variants','VCF_Variants_Count','VCF_Variants_Info']
 
     ### add clades column ###
-    df_clades = pd.read_csv("reference/clades.csv")
-    df_clades = df_clades[( ( df_clades["gene_position_start"] >= region_start ) & ( df_clades["gene_position_stop"] <= region_stop ) ) ]
-    df_ref["VCF_Clade"] =""
-    for indx,row in df_ref.iterrows():
-        for indx2,row2 in df_clades.iterrows():
-            if ( ( row["VCF_Genomic_Locus"] >= row2["gene_position_start"]) and ( row["VCF_Genomic_Locus"] <= row2["gene_position_stop"]) ):
-                df_ref.ix[indx,"VCF_Clade"] = row2["clade"]
+    # df_clades = pd.read_csv("reference/clades.csv")
+    # df_clades = df_clades[( ( df_clades["gene_position_start"] >= region_start ) & ( df_clades["gene_position_stop"] <= region_stop ) ) ]
+    # df_ref["VCF_Clade"] =""
+    # for indx,row in df_ref.iterrows():
+    #     for indx2,row2 in df_clades.iterrows():
+    #         if ( ( row["VCF_Genomic_Locus"] >= row2["gene_position_start"]) and ( row["VCF_Genomic_Locus"] <= row2["gene_position_stop"]) ):
+    #             df_ref.ix[indx,"VCF_Clade"] = row2["clade"]
 
 
     ####add annotation from SNPEFF
     vcf_file = []
     chr_pos_ref_alt = []
     for indx,row in df_ref.iterrows():
-        vcf_file.append(["NC_045512.2",row.VCF_Genomic_Locus,".",row.VCF_Reference,row.VCF_Variants[0],"100.0","PASS","INFO"])
-        chr_pos_ref_alt.append(["NC_045512.2",row.VCF_Genomic_Locus,row.VCF_Reference,row.VCF_Variants[0]])
+        for indx2,variant in enumerate(row.VCF_Variants):
+
+            vcf_file.append(["NC_045512.2",row.VCF_Genomic_Locus,".",row.VCF_Reference,variant,"100.0","PASS","INFO"])
+
+            variant_occurence=0
+            for variant_count in row.VCF_Variants_Count:
+                if variant == variant_count[0]:
+                    variant_occurence = int(variant_count.replace(variant,'').replace(' ',''))
+
+            chr_pos_ref_alt.append([
+            row.VCF_Genomic_Locus,row.VCF_Reference,row.VCF_Mismatch_Count,row.VCF_Variants,row.VCF_Variants_Count,row.VCF_Variants_Info,
+            "NC_045512.2",row.VCF_Genomic_Locus,row.VCF_Reference,variant,variant_occurence])
+
+
     df_vcf_file = pd.DataFrame(vcf_file)
     df_vcf_file[1] = df_vcf_file[1].astype(int)
     df_vcf_file = df_vcf_file.drop_duplicates()
     df_vcf_file = df_vcf_file.sort_values(1)
     df_vcf_file.to_csv(out_dir+"covid.vcf",sep='\t',header=None,index=False)
 
-    df_ref["CHROM"]=[x[0] for x in chr_pos_ref_alt ]
-    df_ref["POS"]=[x[1] for x in chr_pos_ref_alt ]
-    df_ref["REF"]=[x[2] for x in chr_pos_ref_alt ]
-    df_ref["ALT"]=[x[3] for x in chr_pos_ref_alt ]
-
+    ###update df_ref in row wise split of variants
+    new_columns =[x for x in df_ref.columns]
+    new_columns.append("CHROM")
+    new_columns.append("POS")
+    new_columns.append("REF")
+    new_columns.append("ALT")
+    new_columns.append("ALT_count")
+    df_ref2 = pd.DataFrame(chr_pos_ref_alt,columns=new_columns)
 
     cmd="rm -f %s" %(out_dir+"covid.vcf.snpeff")
     bashCommunicator(cmd)
@@ -188,15 +201,15 @@ def analyzeVCF(vcfs_directory,region,region_name,out_dir,reported):
     df_snpeff["VEP_INFO"]= [x.split(";")[1].split(',')[0] for x in df_snpeff.INFO]
     df_snpeff[columns_line] = df_snpeff['VEP_INFO'].str.split('|',expand=True)
 
-    dfjoin = pd.merge(df_ref,df_snpeff,how="left",on=["POS","REF","ALT"],indicator=True)
+    dfjoin = pd.merge(df_ref2,df_snpeff,how="left",on=["POS","REF","ALT"],indicator=True)
 
 
     gene_start = region_start+1
     if region_name == "S":
         gene_start = region_start-1
 
-    dfjoin["Protein_Locus"] = [ int(x)-gene_start for x in dfjoin["VCF_Genomic_Locus"].values]
-    dfjoin["Protein_AA_Locus"] = [ int(x)/3 for x in dfjoin["Protein_Locus"].values]
+    dfjoin["Gene_Locus"] = [ int(x)-gene_start for x in dfjoin["VCF_Genomic_Locus"].values]
+    dfjoin["Protein_AA_Locus"] = [ int(x)/3 for x in dfjoin["Gene_Locus"].values]
     dfjoin["Protein_AA_Locus"] = [ int(x) if x.is_integer() else int(x+1)  for x in dfjoin["Protein_AA_Locus"].values]
 
     df_reported = pd.read_csv(reported+region_name+"_curated.csv")
@@ -207,7 +220,7 @@ def analyzeVCF(vcfs_directory,region,region_name,out_dir,reported):
 
     dfjoin.columns = [x.replace(" ","") for x in dfjoin.columns]
 
-
+    dfjoin = dfjoin[dfjoin['Annotation']!="stop_gained"]
     ### confirm amino acid changes
 
     aa_dict={"Ala": "A",
@@ -235,9 +248,7 @@ def analyzeVCF(vcfs_directory,region,region_name,out_dir,reported):
     "Trp": "W",
     "Ter": "X",
     "Tyr": "Y",
-    "Glx": "Z",
-    "76*":"0",
-    "3fs":"0"}
+    "Glx": "Z"}
 
     print(dfjoin.head())
     dfjoin["aa_auto1"]=[ x.split(".")[1] for x in dfjoin["HGVS.p"]]
@@ -249,11 +260,18 @@ def analyzeVCF(vcfs_directory,region,region_name,out_dir,reported):
     elif region_name == 'nsp12':
         dfjoin["HGVS.p.short"]=[ aa_dict[x.split("-")[0]]+str(y)+aa_dict[x.split("-")[1]] for x,y in zip(dfjoin["aa_auto2"],dfjoin["Protein_AA_Locus"])]
 
-    dfjoin = dfjoin[['VCF_Genomic_Locus', 'VCF_Reference', 'VCF_Mismatch_Count',
-       'VCF_Variants', 'VCF_Variants_Count', 'VCF_Variants_Info', 'VCF_Clade', 'POS', 'REF', 'ALT', 'Annotation',
-       'Annotation_Impact', 'HGVS.c', 'HGVS.p','HGVS.p.short' , 'Status']]
+    dfjoin["Gene_Locus"]=[ x.split(">")[0][len(x.split(">")[0])-1]+str(y)+ x.split(">")[1] for x,y in zip(dfjoin["HGVS.c"],dfjoin["Gene_Locus"])]
+
+    dfjoin = dfjoin[['POS', 'REF', 'ALT','ALT_count',
+    'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene_Locus','HGVS.p','HGVS.p.short' , 'Status',
+    'VCF_Variants','VCF_Mismatch_Count', 'VCF_Variants_Count', 'VCF_Variants_Info']]
 
 
+    dfjoin.columns = ['POS', 'REF', 'ALT','ALT_count',
+                      'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene_Locus','HGVS.p','HGVS.p.short' , 'Status',
+                      'ALL_Variants','Total_Mismatch_Count','Count_per_Variant', 'Variants_Info' ]
+
+    dfjoin.sort_values(by=['POS'],inplace=True)
     dfjoin.to_excel(out_dir+"COVID_SNP_MAP_"+region_name+"_vcfs.xlsx",index=False)
 
 def analyzeEntireGenome(alignment_file,out_dir):
@@ -349,9 +367,13 @@ def analyzeGenomicRegion(alignment_file,region,region_name,out_dir,reported):
     print("before removing ...")
     print(df.shape)
 
-    ## remove 1255 and 1343
+    ## remove 1255 and 1343 and two training runs
     df = df[df[0] != "MCoV-1255"]
     df = df[df[0] != "MCoV-1343"]
+    df = df[df[0] != "MCoV-1483"]
+    df = df[df[0] != "MCoV-743"]
+    df = df[df[0] != "MCoV-1219"]
+
     print("after removing ...")
     print(df.shape)
     ### remove 320 strains from paper
@@ -378,22 +400,12 @@ def analyzeGenomicRegion(alignment_file,region,region_name,out_dir,reported):
             df_clean = df[df[column].isin(['a','t','g','c'])]
             mismatch.append(sum(df_clean[column]!= df_clean.iloc[0,column]))
 
-
-    # sns.lineplot(x=range(region_start,region_stop,1), y=mismatch[1:]) ##remove first sampleID to plot
-    # plt.title("MCoV samples (n="+str(df.shape[0])+")")
-    # plt.ylabel("frequency of mismatch")
-
     if region_name == "nsp12":
         region_start = 13442
         region_stop = 16237
     elif region_name =="S":
         region_start = 21563
         region_stop = 25385
-
-    # plt.xlabel(region_name+"[nt genomic coordinates-"+str(region_start)+":"+str(region_stop)+"]")
-    # plt.savefig(out_dir+"COVID_SNP_MAP_"+region_name+"_nt.png");
-    # plt.close()
-    #
 
     col = []
     col.append("id")
@@ -439,29 +451,139 @@ def analyzeGenomicRegion(alignment_file,region,region_name,out_dir,reported):
     df2["variants_Info"] = variants_info
 
     df2 = df2[['index', 'MN908947','mismatch_count', 'gene', 'variants','variants_Info']]
-    df2.columns = ['NTA_Genomic_Locus', 'NTA_Referene','NTA_Mismatch_Count', 'NTA_Gene', 'NTA_Variants','NTA_Variants_Info']
+    df2.columns = ['NTA_Genomic_Locus', 'NTA_Reference','NTA_Mismatch_Count', 'NTA_Gene', 'NTA_Variants','NTA_Variants_Info']
 
     ####add annotation
-    df_annotation = pd.read_excel("reference/nCOV_Variation_Annotation_4_27.xlsx",skiprows=1)
-    df_annotation.columns = [x.replace(" ","_").replace(".","_") for x in df_annotation.columns]
-    dfjoin = pd.merge(df2,df_annotation,how='left',left_on='NTA_Genomic_Locus',right_on='Genome_position')
 
+    ####add annotation from SNPEFF
+    vcf_file = []
+    chr_pos_ref_alt = []
+    for indx,row in df2.iterrows():
+        for indx2,variant in enumerate(row.NTA_Variants):
+
+            vcf_file.append(["NC_045512.2",row.NTA_Genomic_Locus,".",row.NTA_Reference.upper(),variant.upper(),"100.0","PASS","INFO"])
+
+            variant_occurence=0
+            for key,data in row.NTA_Variants_Info.items():
+                if variant == key:
+                    variant_occurence = int(data[0])
+
+            chr_pos_ref_alt.append([
+            row.NTA_Genomic_Locus,row.NTA_Reference.upper(),row.NTA_Mismatch_Count,row.NTA_Gene,row.NTA_Variants,row.NTA_Variants_Info,
+            "NC_045512.2",row.NTA_Genomic_Locus,row.NTA_Reference.upper(),variant.upper(),variant_occurence])
+
+
+    df_vcf_file = pd.DataFrame(vcf_file)
+    df_vcf_file[1] = df_vcf_file[1].astype(int)
+    df_vcf_file = df_vcf_file.drop_duplicates()
+    df_vcf_file = df_vcf_file.sort_values(1)
+    df_vcf_file.to_csv(out_dir+"nta_covid.vcf",sep='\t',header=None,index=False)
+
+    ###update df_ref in row wise split of variants
+    new_columns =[x for x in df2.columns]
+    new_columns.append("CHROM")
+    new_columns.append("POS")
+    new_columns.append("REF")
+    new_columns.append("ALT")
+    new_columns.append("ALT_count")
+    df_ref = pd.DataFrame(chr_pos_ref_alt,columns=new_columns)
+
+
+    cmd="rm -f %s" %(out_dir+"nta_covid.vcf.snpeff")
+    bashCommunicator(cmd)
+    print("Delete old annotation file")
+
+    cmd = "java -Xmx4g -jar /opt/snpeff/snpeff_covid/snpEff/snpEff.jar -v   NC_045512.2  %s > %s " %(out_dir+"nta_covid.vcf",out_dir+"nta_covid.vcf.snpeff" )
+    bashCommunicator(cmd)
+    print("Generating new annotation file")
+
+    VEP_FILE=out_dir+"nta_covid.vcf.snpeff"
+    header=[]
+    with open(VEP_FILE) as myfile:
+        header = [next(myfile) for x in range(3)]
+    columns_line=str(header[2].strip().split(':')[1]).split('|')
+
+    df_snpeff = pd.read_csv(VEP_FILE,sep='\t',skiprows=5,header=None)
+    df_snpeff.columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']
+    df_snpeff["HGMD_INFO"]= [x.split(";")[0] for x in df_snpeff.INFO]
+    df_snpeff["VEP_INFO"]= [x.split(";")[1].split(',')[0] for x in df_snpeff.INFO]
+    df_snpeff[columns_line] = df_snpeff['VEP_INFO'].str.split('|',expand=True)
+
+    dfjoin = pd.merge(df_ref,df_snpeff,how="left",on=["POS","REF","ALT"],indicator=True)
 
     gene_start = region_start+1
     if region_name == "S":
         gene_start = region_start-1
 
-    dfjoin["NTA_Protein_Locus"] = [ int(x)-gene_start for x in dfjoin["NTA_Genomic_Locus"].values]
-    dfjoin["NTA_Protein_AA_Locus"] = [ int(x)/3 for x in dfjoin["NTA_Protein_Locus"].values]
-    dfjoin["NTA_Protein_AA_Locus"] = [ int(x) if x.is_integer() else int(x+1)  for x in dfjoin["NTA_Protein_AA_Locus"].values]
-
+    dfjoin["Gene_Locus"] = [ int(x)-gene_start for x in dfjoin["NTA_Genomic_Locus"].values]
+    dfjoin["Protein_AA_Locus"] = [ int(x)/3 for x in dfjoin["Gene_Locus"].values]
+    dfjoin["Protein_AA_Locus"] = [ int(x) if x.is_integer() else int(x+1)  for x in dfjoin["Protein_AA_Locus"].values]
 
     df_reported = pd.read_csv(reported+region_name+"_curated.csv")
     curated = df_reported["Genomic locus"].values
 
-    dfjoin["NTA_Status"] = ["Reported" if x in curated else "NotReported" for x in dfjoin["NTA_Genomic_Locus"].values]
 
-    dfjoin.to_excel(out_dir+"COVID_SNP_MAP_"+region_name+"_NTA_variants.xlsx",index=False)
+    dfjoin["Status"] = ["Reported" if x in curated else "NotReported" for x in dfjoin["NTA_Genomic_Locus"].values]
+
+    dfjoin.columns = [x.replace(" ","") for x in dfjoin.columns]
+
+    dfjoin = dfjoin[dfjoin['Annotation']!="stop_gained"]
+    dfjoin = dfjoin[dfjoin['Annotation']!="start_lost"]
+
+    ### confirm amino acid changes
+
+    aa_dict={
+    "Ala": "A",
+    "Asx": "B",
+    "Cys": "C",
+    "Asp": "D",
+    "Glu": "E",
+    "Phe": "F",
+    "Gly": "G",
+    "His": "H",
+    "Ile": "I",
+    "Xle": "J",
+    "Lys": "K",
+    "Leu": "L",
+    "Met": "M",
+    "Asn": "N",
+    "Hyp": "O",
+    "Pro": "P",
+    "Gln": "Q",
+    "Arg": "R",
+    "Ser": "S",
+    "Thr": "T",
+    "Glp": "U",
+    "Val": "V",
+    "Trp": "W",
+    "Ter": "X",
+    "Tyr": "Y",
+    "Glx": "Z"}
+
+    print(dfjoin.head())
+    dfjoin["aa_auto1"]=[ x.split(".")[1] for x in dfjoin["HGVS.p"]]
+    dfjoin["aa_auto2"]=[str(x[0:3])+'-'+str(x[len(x)-3:]) for x in dfjoin["aa_auto1"]]
+    dfjoin["aa_auto3"]=[str(x[3:len(x)-3:]) for x in dfjoin["aa_auto1"]]
+
+    if region_name == 'S':
+        dfjoin["HGVS.p.short"]=[ aa_dict[x.split("-")[0]]+y+aa_dict[x.split("-")[1]] for x,y in zip(dfjoin["aa_auto2"],dfjoin["aa_auto3"])]
+    elif region_name == 'nsp12':
+        dfjoin["HGVS.p.short"]=[ aa_dict[x.split("-")[0]]+str(y)+aa_dict[x.split("-")[1]] for x,y in zip(dfjoin["aa_auto2"],dfjoin["Protein_AA_Locus"])]
+
+    dfjoin["Gene_Locus"]=[ x.split(">")[0][len(x.split(">")[0])-1]+str(y)+ x.split(">")[1] for x,y in zip(dfjoin["HGVS.c"],dfjoin["Gene_Locus"])]
+
+
+    dfjoin = dfjoin[['POS', 'REF', 'ALT','ALT_count',
+    'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene_Locus','HGVS.p','HGVS.p.short' , 'Status',
+    'NTA_Variants','NTA_Mismatch_Count', 'NTA_Variants_Info']]
+
+
+    dfjoin.columns = ['POS', 'REF', 'ALT','ALT_count',
+                      'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene_Locus','HGVS.p','HGVS.p.short' , 'Status',
+                      'ALL_Variants','Total_Mismatch_Count','Variants_Info' ]
+
+    dfjoin.sort_values(by=['POS'],inplace=True)
+    dfjoin.to_excel(out_dir+"COVID_SNP_MAP_"+region_name+"_NTA.xlsx",index=False)
 
 def analyzeProtein(alignment_file,protein_name,protein_reference,out_dir):
 

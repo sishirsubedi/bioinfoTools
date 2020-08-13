@@ -10,16 +10,13 @@ import seaborn as sns
 import numpy as np
 import os
 import re
+import alignment_analysis
 
+########################################################
 
-df= pd.read_excel("3_MCoV Sample Log 6-22-20 for Paul.xlsx")
-df = df[['Musser Lab No.', 'Full Order Number']]
-df.columns = ['MCoVNumber', 'ORDER_ID']
-df.MCoVNumber = df.MCoVNumber.astype(str)
-df.ORDER_ID = df.ORDER_ID.astype(str)
-
-df_db = pd.read_excel("1_covid_patient_orders.xlsx")
-df_db2 = pd.read_excel("2_Surveillance.xlsx")
+ref_dir="/home/tmhsxs240/COVID_19/reference/"
+df_db = pd.read_excel(ref_dir+"1_covid_patient_orders.xlsx")
+df_db2 = pd.read_excel(ref_dir+"2_Surveillance.xlsx")
 df_db = df_db.append(df_db2)
 ### keep only unique order ids
 df_db.drop_duplicates("ORDER_ID",inplace=True)
@@ -27,35 +24,52 @@ df_db = df_db[['MRN','ORDER_ID','COLLECTION_DT']]
 df_db.MRN = df_db.MRN.astype(str)
 df_db.ORDER_ID = df_db.ORDER_ID.astype(str)
 
+df= pd.read_excel(ref_dir+"3_CoVID Sample Log.xlsx")
+df = df[['Musser Lab No.', 'Full Order Number.2']]
+df.columns = ['MCoVNumber', 'ORDER_ID']
+df.MCoVNumber = df.MCoVNumber.astype(str)
+df.ORDER_ID = df.ORDER_ID.astype(str)
+
 dfjoin = pd.merge(df,df_db, on="ORDER_ID",how="left",indicator=True)
 dfjoin._merge.value_counts()
 dfjoin = dfjoin[dfjoin._merge=="both"]
 dfjoin = dfjoin[[ 'MCoVNumber','ORDER_ID','MRN','COLLECTION_DT']]
-dfjoin.to_csv("4_Curated_MCOV_MRN_Strains.csv",index=False)
+dfjoin.columns =['Strain', 'ORDER_ID','MRN','COLLECTION_DT']
+# dfjoin.to_csv(ref_dir+"4_Curated_MCOV_MRN_Strains.csv",index=False)
+# dfjoin.to_excel(ref_dir+"4_Curated_MCOV_MRN_Strains.xlsx",index=False)
+
+df_alignment = alignment_analysis.getStrains("/home/tmhsxs240/COVID_19/data/8_11/Houston.Aug12.clean.fa")
 
 
+#######################################
 
-df_alignment = alignment_analysis.getStrains("/home/tmhsxs240/COVID_19/data/6_24/Houston.July1.clean--RedundantMRN.fa")
+dfjoin_selected = pd.merge(df_alignment,dfjoin,how="left",on="Strain",indicator=True)
 
-df_curated = pd.read_csv("4_Curated_MCOV_MRN_Strains.csv")
-df_curated = df_curated[['MCoVNumber', 'ORDER_ID', 'MRN']]
-df_curated.columns =['Strain', 'ORDER_ID','MRN']
-dfjoin_selected = pd.merge(df_alignment,df_curated,how="left",on="Strain",indicator=True)
+## remove
 dfjoin_selected = dfjoin_selected[dfjoin_selected._merge=="both"]
+dfjoin_selected = dfjoin_selected[dfjoin_selected.Strain != "MCoV-1255"]
+dfjoin_selected = dfjoin_selected[dfjoin_selected.Strain != "MCoV-1343"]
+dfjoin_selected = dfjoin_selected[dfjoin_selected.Strain != "MCoV-1483"]
+
+dfjoin_selected.to_csv(ref_dir+"4_Curated_MCOV_MRN_Strains_5084.csv",index=False)
+
+################################################################################
+
+
 
 t = dfjoin_selected.groupby(["MRN"])["Strain"].count().reset_index()
 t2 = dfjoin_selected.groupby(["MRN"])["Strain"].agg({"Strain":'/'.join})
 t2.reset_index(inplace=True)
 t2["Strain Count"] = t["Strain"]
-t2.to_excel("Patients_strain_count_from_NTA.xlsx",index=False)
+t2.to_excel(ref_dir+"4_b_Patients_strain_count_from_NTA.xlsx",index=False)
 
 
 
-alignment_analysis.tableGenomicMutations("/home/tmhsxs240/COVID_19/data/6_24/Houston.July1.clean--RedundantMRN.fa","5_StrainsAndMutations_entire_genome.csv")
-df_mutations_per_strain = pd.read_csv("5_StrainsAndMutations_entire_genome.csv")
+alignment_analysis.tableGenomicMutations("/home/tmhsxs240/COVID_19/data/8_11/Houston.Aug12.clean.fa",ref_dir+"5_StrainsAndMutations_entire_genome.csv")
+df_mutations_per_strain = pd.read_csv(ref_dir+"5_StrainsAndMutations_entire_genome.csv")
 
 
-df_curated = pd.read_csv("4_Curated_MCOV_MRN_Strains.csv")
+df_curated = pd.read_csv(ref_dir+"4_Curated_MCOV_MRN_Strains_5085.csv")
 df_curated.columns =['Strain', 'ORDER_ID','MRN','COLLECTION_DT']
 df_curated['COLLECTION_DT'] = pd.to_datetime(df_curated['COLLECTION_DT'])
 

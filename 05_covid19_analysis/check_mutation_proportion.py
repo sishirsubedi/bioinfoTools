@@ -13,8 +13,8 @@ import ast
 import alignment_analysis
 
 alignment_file =""
-genomic_mutation_table = "1_StrainsAndMutations_entire_genome.csv"
-alignment_analysis.tableGenomicMutations(alignment_file,genomic_mutation_table):
+# alignment_analysis.tableGenomicMutations(alignment_file,genomic_mutation_table):
+genomic_mutation_table = "reference/5_final_genomic_mutations_from_nta.csv"
 
 
 df = pd.read_csv(genomic_mutation_table)
@@ -22,18 +22,21 @@ df["Strain"] = [x.replace("-0","-") for x in df["Strain"].values]
 df = df[df.Strain!="MN908947"]
 df = df[df.Strain!="MCoV-1343"]
 df = df[df.Strain!="MCoV-1255"]
+df = df[df.Strain!="MCoV-743"]
+df = df[df.Strain!="MCoV-1219"]
+df = df[df.Strain!="MCoV-1483"]
 
 
 # df_sample_log= pd.read_excel("3_MCoV Sample Log 6-22-20 for Paul.xlsx")
 
-df_sample_log= pd.read_excel("MCoV Metadata for PATRIC 6-23.xlsx")
-df_sample_log = df_sample_log[['MRN', 'Full Order Number', 'Musser Lab No.', 'GENDER','AGE','DeceasedYN-June22','ETHNIC_GROUP']]
-df_sample_log.columns = ['MRN', 'ORDER_ID', 'MCoVNumber','GENDER','AGE','DEATH','ETHNIC_GROUP']
+# df_sample_log= pd.read_excel("reference/MCoV Sample Log7-21-20 metadata.xlsx")
+# df_sample_log = df_sample_log[['MRN', 'Full Order Number', 'Musser Lab No.', 'GENDER','AGE','DeceasedYN-June22','ETHNIC_GROUP']]
+# df_sample_log.columns = ['MRN', 'ORDER_ID', 'MCoVNumber','GENDER','AGE','DEATH','ETHNIC_GROUP']
+#
 
-
-df_db = pd.read_csv("1_Curated_Covid_database.csv")
+df_db = pd.read_csv("reference/4_Curated_MCOV_MRN_Strains.csv")
 df_db.COLLECTION_DT = pd.to_datetime(df_db.COLLECTION_DT)
-df_db.VERIFIED_DT = pd.to_datetime(df_db.VERIFIED_DT)
+# df_db.VERIFIED_DT = pd.to_datetime(df_db.VERIFIED_DT)
 
 dfjoin_mrn = pd.merge(df_sample_log,df_db, on="ORDER_ID",how="left",indicator=True)
 dfjoin_mrn = dfjoin_mrn[dfjoin_mrn._merge=="both"]
@@ -45,7 +48,10 @@ dfjoin_mrn.columns = ['MRN','ORDER_ID', 'MCoVNumber', 'COLLECTION_DT','VERIFIED_
 # dfjoin_mrn.drop_duplicates(["MCoVNumber"],inplace=True)
 
 method="COLLECTION_DT"
-dffinal = pd.merge(df,dfjoin_mrn, left_on="Strain",right_on="MCoVNumber",how="left",indicator=True)
+# dffinal = pd.merge(df,dfjoin_mrn, left_on="Strain",right_on="MCoVNumber",how="left",indicator=True)
+
+dffinal = pd.merge(df,df_db, left_on="Strain",right_on="Strain",how="left",indicator=True)
+
 dffinal = dffinal[dffinal._merge=="both"]
 dffinal.set_index(method,inplace=True)
 
@@ -61,7 +67,10 @@ dffinal['wave'] =wave
 df_week = dffinal.to_period(freq='W-MON')
 df_week.reset_index(inplace=True)
 
-moi = ["A23403G","C24034T","C23191T","T24982C","C24718A"]
+# moi = ["A23403G","C24034T","C23191T","T24982C","C24718A"]
+
+moi = ["A23403G"]
+
 for mutation in moi:
     mut_614=[]
     for indx,row in df_week.iterrows():

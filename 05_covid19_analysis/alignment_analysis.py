@@ -112,6 +112,7 @@ def tableGenomicMutations(alignment_file,out_file):
 
     df_strains = pd.DataFrame(mismatch)
     df_strains.columns = ["Strain","mutation_count","mutation_info"]
+    df_strains["Strain"] = [x.replace("-0","-") for x in df_strains["Strain"].values]
 
     if out_file != None:
         df_strains.to_csv(out_file,index=False)
