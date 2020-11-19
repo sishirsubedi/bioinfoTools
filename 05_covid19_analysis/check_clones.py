@@ -12,7 +12,7 @@ import os
 import re
 import alignment_analysis
 
-alignment_analysis.tableGenomicMutations("/home/tmhsxs240/COVID_19/data/6_24/Houston.July1.clean--RedundantMRN.fa","5_StrainsAndMutations_entire_genome.csv")
+# alignment_analysis.tableGenomicMutations("/home/tmhsxs240/COVID_19/data/6_24/Houston.July1.clean--RedundantMRN.fa","5_StrainsAndMutations_entire_genome.csv")
 df_mutations_per_strain = pd.read_csv("5_StrainsAndMutations_entire_genome.csv")
 
 

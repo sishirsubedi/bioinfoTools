@@ -14,7 +14,7 @@ import alignment_analysis
 
 alignment_file =""
 # alignment_analysis.tableGenomicMutations(alignment_file,genomic_mutation_table):
-genomic_mutation_table = "reference/5_final_genomic_mutations_from_nta.csv"
+genomic_mutation_table = "reference/5_StrainsAndMutations_entire_genome.csv"
 
 
 df = pd.read_csv(genomic_mutation_table)
@@ -24,7 +24,6 @@ df = df[df.Strain!="MCoV-1343"]
 df = df[df.Strain!="MCoV-1255"]
 df = df[df.Strain!="MCoV-743"]
 df = df[df.Strain!="MCoV-1219"]
-df = df[df.Strain!="MCoV-1483"]
 
 
 # df_sample_log= pd.read_excel("3_MCoV Sample Log 6-22-20 for Paul.xlsx")
@@ -34,14 +33,14 @@ df = df[df.Strain!="MCoV-1483"]
 # df_sample_log.columns = ['MRN', 'ORDER_ID', 'MCoVNumber','GENDER','AGE','DEATH','ETHNIC_GROUP']
 #
 
-df_db = pd.read_csv("reference/4_Curated_MCOV_MRN_Strains.csv")
+df_db = pd.read_csv("reference/4_Curated_MCOV_MRN_Strains_good_strains.csv")
 df_db.COLLECTION_DT = pd.to_datetime(df_db.COLLECTION_DT)
 # df_db.VERIFIED_DT = pd.to_datetime(df_db.VERIFIED_DT)
 
-dfjoin_mrn = pd.merge(df_sample_log,df_db, on="ORDER_ID",how="left",indicator=True)
-dfjoin_mrn = dfjoin_mrn[dfjoin_mrn._merge=="both"]
-dfjoin_mrn = dfjoin_mrn[['MRN_x','ORDER_ID', 'MCoVNumber', 'COLLECTION_DT','VERIFIED_DT','GENDER','AGE','DEATH','ETHNIC_GROUP']]
-dfjoin_mrn.columns = ['MRN','ORDER_ID', 'MCoVNumber', 'COLLECTION_DT','VERIFIED_DT','GENDER','AGE','DEATH','ETHNIC_GROUP']
+# dfjoin_mrn = pd.merge(df_sample_log,df_db, on="ORDER_ID",how="left",indicator=True)
+# dfjoin_mrn = dfjoin_mrn[dfjoin_mrn._merge=="both"]
+# dfjoin_mrn = dfjoin_mrn[['MRN_x','ORDER_ID', 'MCoVNumber', 'COLLECTION_DT','VERIFIED_DT','GENDER','AGE','DEATH','ETHNIC_GROUP']]
+# dfjoin_mrn.columns = ['MRN','ORDER_ID', 'MCoVNumber', 'COLLECTION_DT','VERIFIED_DT','GENDER','AGE','DEATH','ETHNIC_GROUP']
 
 # dfjoin_mrn = dfjoin_mrn[dfjoin_mrn["MCoVNumber"].notnull()]
 # dfjoin_mrn.sort_values("COLLECTION_DT",inplace=True)
@@ -50,7 +49,7 @@ dfjoin_mrn.columns = ['MRN','ORDER_ID', 'MCoVNumber', 'COLLECTION_DT','VERIFIED_
 method="COLLECTION_DT"
 # dffinal = pd.merge(df,dfjoin_mrn, left_on="Strain",right_on="MCoVNumber",how="left",indicator=True)
 
-dffinal = pd.merge(df,df_db, left_on="Strain",right_on="Strain",how="left",indicator=True)
+dffinal = pd.merge(df_db,df, left_on="Strain",right_on="Strain",how="left",indicator=True)
 
 dffinal = dffinal[dffinal._merge=="both"]
 dffinal.set_index(method,inplace=True)

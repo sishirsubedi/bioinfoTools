@@ -1,10 +1,4 @@
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import pylab
-import pandas as pd
-import seaborn as sns
 from Bio import AlignIO, SeqIO, Entrez
 import numpy as np
 import os
@@ -182,6 +176,3 @@ def assignClades(vcfs_directory):
     df_res.columns=["Strain","Clade"]
     df_res.to_excel("strain_clade_assignment.xlsx",index=False)
 
-
-
-assignClades("/net/fs01.cluster.com/home/tmhsxs240/COVID_19/data/Ns_Strain_Comparison/6_15_vcfs/")

@@ -60,7 +60,6 @@ if __name__ == '__main__':
 
     df_db = pre_processes(df_db)
 
-    
 
     mgr = Manager()
 

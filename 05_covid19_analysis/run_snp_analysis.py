@@ -1,12 +1,14 @@
 import pandas as pd
 import SNP_analyzer_main
 import sys
+import os
 
 old_run = sys.argv[1]#"4_15"
 new_run = sys.argv[2]#"8_11"
 region_name = sys.argv[3] ## nsp12 or S 
 mode = sys.argv[4]
 wave = sys.argv[5]
+nta_file = sys.argv[6]
 
 out_dir = "data/"+new_run+"/results/"+region_name+"/"
 reported = "results/"+old_run+"/"
@@ -33,18 +35,27 @@ def run_vcf_analysis():
 
 
 def run_nta_analysis():
-    dna_alignment_file = "data/"+new_run+"/Houston.Sept.clean.fa"
+    dna_alignment_file = "data/"+new_run+'/'+nta_file
+    
 
     dna_alignment_region=[]
     if region_name == "S":
-        dna_alignment_region=[21508,25330]
+        dna_alignment_region="21508:25330"
     elif region_name == "nsp12":
-        dna_alignment_region=[13387,16182]
+        dna_alignment_region="13387:16182"
 
-    SNP_analyzer_main.analyzeGenomicRegion(dna_alignment_file,dna_alignment_region,region_name,out_dir,reported)
+    out_dir = "data/"+new_run+'/results/'+region_name+'/' 
+    # SNP_analyzer_main.analyzeGenomicRegion(dna_alignment_file,dna_alignment_region,region_name,out_dir,reported)
+    command = "/opt/python3/bin/python3 NTA_SNP_analyzer.py \
+    --alignment_file  "+ dna_alignment_file + "\
+    --region_name "+ region_name + "\
+    --region  "+ dna_alignment_region + "\
+    --out_dir "+ out_dir
+
+    os.system(command)
 
 def run_nta_analysis_wave(wave):
-    dna_alignment_file = "data/"+new_run+"/Houston.Aug12.clean.fa"
+    dna_alignment_file = "data/"+new_run+'/'+nta_file
 
     dna_alignment_region=[]
     if region_name == "S":

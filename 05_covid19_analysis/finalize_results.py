@@ -1,40 +1,42 @@
 import pandas as pd
+import sys
 
+new_run = sys.argv[1]#"8_"
+region_name = sys.argv[2] #S or nsp12
+mode = sys.argv[3]# nta or vcf
+new_column = sys.argv[4]
 
-old_run = "4_15"
-new_run = "8_11"
-
+# new_run = "8_11"
 # region_name = "S"
-region_name = "nsp12"
+# mode = "nta"
 
-# mode ="vcfs"
-mode = "NTA"
+##############################################################################
 
 out_dir = "data/"+new_run+"/results/"+region_name+"/"
 OUT_FILE = out_dir+'COVID_SNP_MAP_'+region_name+'_'+mode+'_table_'+new_run+'.xlsx'
-
+OUT_FILE_all = out_dir+'COVID_SNP_MAP_'+region_name+'_'+mode+'_table_'+new_run+'_all.xlsx'
 
 WORD_FILE=out_dir+region_name+'_table.xlsx'
 SNP_FILE=out_dir+'COVID_SNP_MAP_'+region_name+'_'+mode+'_'+new_run+'.xlsx'
 
-new_column = 'New analysis (n=5084)'
+# new_column = 'Total Confirmed (1153)'
 ##########################################################################
 
 
 df = pd.read_excel(WORD_FILE)
-df.columns = ['Genomic locus', 'Gene locus', 'AA Change', 'Domain','Houston Strains (n=320)', 'New Strains Confirmed (n=2990)', 'Total Confirmed (n=3507)']
+df.columns = ['Genomic locus', 'Gene locus', 'AA Change', 'Domain','Total Confirmed (5085)']
 df['Genomic locus'] = df['Genomic locus'].astype(int)
 df['Gene locus'] = [x.replace(" ","") for x in df['Gene locus']]
 
 df_snp = pd.read_excel(SNP_FILE)
 
-if mode=="vcfs":
+if mode=="vcf":
     df_snp.columns = ['Genomic locus', 'REF', 'ALT','ALT_count',
-            'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene locus','HGVS.p','AA Change' , 'Status',
+            'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene locus','HGVS.p','AA Change' ,
             'ALL_Variants','Total_Mismatch_Count','Count_per_Variant', 'Variants_Info' ]
-elif mode=="NTA":
+elif mode=="nta":
     df_snp.columns = ['Genomic locus', 'REF', 'ALT','ALT_count',
-            'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene locus','HGVS.p','AA Change' , 'Status',
+            'Annotation', 'Annotation_Impact', 'HGVS.c', 'Gene locus','HGVS.p','AA Change' ,
             'ALL_Variants','Total_Mismatch_Count', 'Variants_Info' ]
 
 df_snp['Genomic locus'] = df_snp['Genomic locus'].astype(int)
@@ -51,8 +53,16 @@ dfjoin.ix[dfjoin["_merge"]=="both","Variant status"] = "past and current"
 
 
 #### change to syn
-for indx,row in dfjoin[dfjoin["Variant status"]=="current only"].iterrows():
+# for indx,row in dfjoin[dfjoin["Variant status"]=="current only"].iterrows():
+#     aa_change = row['AA Change_x']
+#     if aa_change[0] == aa_change[len(aa_change)-1]:
+#         dfjoin.ix[indx,'AA Change_x'] = "Syn"
+
+
+for indx,row in dfjoin.iterrows():
     aa_change = row['AA Change_x']
+    if aa_change =="Syn":
+        continue
     if aa_change[0] == aa_change[len(aa_change)-1]:
         dfjoin.ix[indx,'AA Change_x'] = "Syn"
 
@@ -110,36 +120,43 @@ new_columns.append(new_column)
 new_columns.append("Variant status")
 dfjoin = dfjoin[new_columns]
 dfjoin.sort_values(by=['Genomic locus'],inplace=True)
+
+dfjoin.drop(['REF','ALT'], axis=1, inplace=True)
+
 # dfjoin.to_excel(,index=False)
 
-pd.formats.format.header_style = None
-# Create a Pandas Excel writer using XlsxWriter as the engine.
-writer = pd.ExcelWriter(OUT_FILE, engine='xlsxwriter')
+def writeExcel(df,OUT_FILE):
+    pd.formats.format.header_style = None
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    writer = pd.ExcelWriter(OUT_FILE, engine='xlsxwriter')
 
-# Convert the dataframe to an XlsxWriter Excel object.
-dfjoin.to_excel(writer, sheet_name='Sheet1',index=False)
+    # Convert the dataframe to an XlsxWriter Excel object.
+    df.to_excel(writer, sheet_name='Sheet1',index=False)
 
-# Get the xlsxwriter workbook and worksheet objects.
-workbook  = writer.book
-worksheet = writer.sheets['Sheet1']
+    # Get the xlsxwriter workbook and worksheet objects.
+    workbook  = writer.book
+    worksheet = writer.sheets['Sheet1']
 
-font_fmt = workbook.add_format({'align': 'center','font_name': 'Arial', 'font_size': 16,'bold':False})
-header_fmt = workbook.add_format({'align': 'center','text_wrap': True,'font_name': 'Arial', 'font_size': 14, 'bold': True})
+    font_fmt = workbook.add_format({'align': 'center','font_name': 'Arial', 'font_size': 16,'bold':False})
+    header_fmt = workbook.add_format({'align': 'center','text_wrap': True,'font_name': 'Arial', 'font_size': 14, 'bold': True})
 
-worksheet.set_column('A:I', None, font_fmt)
-worksheet.set_row(0, None, header_fmt)
-worksheet.set_column('A:I', 25)
+    worksheet.set_column('A:G', None, font_fmt)
+    worksheet.set_row(0, None, header_fmt)
+    worksheet.set_column('A:G', 25)
 
-number_rows = len(dfjoin.index) + 1
+    number_rows = len(df.index) + 1
 
-format1 = workbook.add_format({'bg_color': '#FFFF00'})
+    format1 = workbook.add_format({'bg_color': '#FFFF00'})
 
-worksheet.conditional_format("$A$1:$I$%d" % (number_rows),
-                             {"type": "formula",
-                              "criteria": '=INDIRECT("I"&ROW())="current only"',
-                              "format": format1
-                             }
+    worksheet.conditional_format("$A$1:$I$%d" % (number_rows),
+                                 {"type": "formula",
+                                  "criteria": '=INDIRECT("G"&ROW())="current only"',
+                                  "format": format1
+                                 }
 
-)
+    )
 
-writer.save()
+    writer.save()
+
+
+writeExcel(dfjoin,OUT_FILE)
