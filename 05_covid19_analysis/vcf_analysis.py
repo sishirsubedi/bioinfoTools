@@ -140,3 +140,63 @@ def analyzePositionVariant(vcfs_directory,position,out_file):
     else:
         return df_combine
 
+
+def analyzePositionVariantMultiple(vcfs_directory,out_file):
+
+    print ("processing.....vcfs")
+
+    vcfs = os.listdir(vcfs_directory)
+    combine = []
+    failed = 0
+    for vcf_file in vcfs:
+        try:
+            df = pd.read_csv(vcfs_directory+vcf_file,sep="\t",skiprows=9)
+            df = df[['POS','REF','ALT','QUAL']]
+            df.POS = df.POS.astype(int)
+
+            if df.shape[0] >= 1:
+ 
+                temp = []
+                temp.append(vcf_file.split(".")[0])
+
+                for mutation in ["A23403G","C21707T","C24718A","C24026T","C21575T","C23481T","C23604A","C21638T","G23224T","G24812T"]:
+                    
+                    ref = mutation[0]
+                    alt = mutation[len(mutation)-1]
+                    position = int(mutation[1:len(mutation)-1])
+
+                    df_sel = df[ ( (df.POS==position) & (df.REF==ref) & (df.ALT==alt) ) ]
+
+                    if df_sel.shape[0] == 1:
+                        temp.append(df_sel.iloc[0,3])
+                    else:
+                        temp.append("NF")
+                temp.append(df.shape[0])
+                combine.append(temp)
+        except:
+            failed += 1
+            print("failed number:"+str(failed)+"---"+vcf_file)
+    df_combine = pd.DataFrame(combine,columns=["Strain","A23403G","C21707T","C24718A","C24026T","C21575T","C23481T","C23604A","C21638T","G23224T","G24812T","TotalVariants"])
+
+    df_combine["Strain"] = [x.replace("-r1","").replace("_r1","").replace("r1","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-r2","").replace("_r2","").replace("r2","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-r3","").replace("_r3","").replace("r3","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("v3","").replace("V3","") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("_","-") for x in df_combine["Strain"].values]
+    df_combine["Strain"] = [x.replace("-0","-") for x in df_combine["Strain"].values]
+
+    print(df_combine.shape)
+    # df_combine["A23403G"] = df_combine["A23403G"].astype(float)
+    # df_combine.sort_values(["A23403G"],ascending=False,inplace=True)
+    print(df_combine.head())
+    df_combine.drop_duplicates("Strain",inplace=True)
+    print(df_combine.shape)
+
+    if out_file != None:
+        df_combine.to_csv(out_file,index=False)
+    else:
+        return df_combine
+
+vcfs_directory="/net/fs01.cluster.com/home/tmhsxs240/COVID_19/data/9_29_allD614G/all_vcfs/"
+out_file="/net/fs01.cluster.com/home/tmhsxs240/COVID_19/data/9_29_allD614G/all_vcfs_analysis.csv"
+analyzePositionVariantMultiple(vcfs_directory,out_file)

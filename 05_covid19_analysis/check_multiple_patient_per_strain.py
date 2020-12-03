@@ -5,25 +5,51 @@ import alignment_analysis
 
 ###read orders########
 ref_dir="/home/tmhsxs240/COVID_19/reference/"
-df_db = pd.read_csv(ref_dir+"1_orders.csv")
+df_db = pd.read_csv(ref_dir+"1_orders.csv",dtype = {'MRN': str,'ORDER_ID': str},low_memory=False)
 df_db.drop_duplicates("ORDER_ID",inplace=True)
 df_db = df_db[['MRN','ORDER_ID','COLLECTION_DT']]
-df_db.MRN = df_db.MRN.astype(str)
-df_db.ORDER_ID = df_db.ORDER_ID.astype(str)
 
 
 ###read log files#####
 df= pd.read_excel(ref_dir+"3_CoVID Sample Log.xlsx")
 df = df[['Musser Lab No.', 'Full Order Number.2']]
 df.columns = ['MCoVNumber', 'ORDER_ID']
-df.MCoVNumber = df.MCoVNumber.astype(str)
-df.ORDER_ID = df.ORDER_ID.astype(str)
 
 dfjoin = pd.merge(df,df_db, on="ORDER_ID",how="left",indicator=True)
 dfjoin._merge.value_counts()
+
+
+####need to adress missing these in orders.csv 
+####these are all training runs so ok to ignore these
+#        MCoVNumber    ORDER_ID  MRN COLLECTION_DT     _merge
+# 742      MCoV-743  I209005171  NaN           NaN  left_only
+# 1218    MCoV-1219  I221003705  NaN           NaN  left_only
+# 12122  MCoV-12123  I716012210  NaN           NaN  left_only
+# 12290  MCoV-12291  I716012193  NaN           NaN  left_only
+# 12787  MCoV-12788  I619009616  NaN           NaN  left_only
+# 12823  MCoV-12824  I619009638  NaN           NaN  left_only
+# 12866  MCoV-12867  I619009651  NaN           NaN  left_only
+
 dfjoin = dfjoin[dfjoin._merge=="both"]
 dfjoin = dfjoin[[ 'MCoVNumber','ORDER_ID','MRN','COLLECTION_DT']]
 dfjoin.columns =['Strain', 'ORDER_ID','MRN','COLLECTION_DT']
+
+
+dfjoin.COLLECTION_DT = pd.to_datetime(dfjoin.COLLECTION_DT)
+
+def assign_group(cdate):
+    cdate = pd.Timestamp(cdate)
+    gr = ""
+    if cdate < pd.Timestamp(2020,5,12):
+        gr="wave_1"
+    elif cdate > pd.Timestamp(2020,5,12) and cdate < pd.Timestamp(2020,8,15):
+        gr="wave_2"
+    elif cdate > pd.Timestamp(2020,8,15):
+        gr="trough"
+    return gr
+
+
+dfjoin["AnalysisGroup"] = list(map(assign_group,dfjoin.COLLECTION_DT.values))
 dfjoin.to_excel(ref_dir+"4_1_Curated_MCOV_MRN_Strains.xlsx",index=False)
 
 #### read alignment ######

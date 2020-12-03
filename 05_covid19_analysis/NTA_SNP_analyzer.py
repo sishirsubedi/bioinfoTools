@@ -15,7 +15,7 @@ def bashCommunicator(command,output_expected=False):
             return [x for x in stdout.split("\n")]
 
 def sequenceFromAlignment(alignment_file,gene,coordinates,reference=False,adjustment=0):
-    
+
     gene_start = int(coordinates.split(':')[0])
     gene_stop = int(coordinates.split(':')[1])
 
@@ -34,78 +34,60 @@ def sequenceFromAlignment(alignment_file,gene,coordinates,reference=False,adjust
     return sequences
 
 def filterMainAlignment(df):
-    
-    # df[0]=[x.replace("V-",".").replace("-","").replace(".","-") for x in df[0].values]
+
+    print("before removing repeat markers..."+str(df.shape))
+
+    ### remove repeat markers
+    df[0] = [x.replace("-0","-") for x in df[0].values]
+    df[0] = [x.replace("-R","") for x in df[0].values]
+    df[0] = [x.replace("-r1","").replace("_r1","").replace("r1","") for x in df[0].values]
+    df[0] = [x.replace("-r2","").replace("_r2","").replace("r2","") for x in df[0].values]
+    df[0] = [x.replace("-r3","").replace("_r3","").replace("r3","") for x in df[0].values]
+    df[0] = [x.replace("v3","").replace("V3","") for x in df[0].values]
+    df[0] = [x.replace("_","-") for x in df[0].values]
+
+    print("before removing duplicates..."+str(df.shape))
     df.drop_duplicates(0,inplace=True)
 
-    print("before removing ...")
-    print(df.shape)
-
-    ## remove 1255 and 1343 and two training runs
-    df = df[df[0] != "MCoV-1255"]
-    df = df[df[0] != "MCoV-1343"]
-    df = df[df[0] != "MCoV-743"]
-    df = df[df[0] != "MCoV-1219"]
-
+    print("before removing training runs..."+str(df.shape))
+    ## remove training runs
     ### more noise data from 5x depth
-    df = df[df[0] != "MCoV-12783"]
-    df = df[df[0] != "MCoV-12765"]
-    df = df[df[0] != "MCoV-12805"]
+    remove_index = df[df[0].isin(["MCoV-1255","MCoV-1343","MCoV-743",
+    "MCoV-1219","MCoV-12783","MCoV-12765","MCoV-12805","MCoV-12123",
+    "MCoV-12291","MCoV-12788","MCoV-12824","MCoV-12867","MCoV-11867"])].index
+    df.drop(remove_index,inplace=True)
 
-
-
-    ### remove 320 strains from paper
-    # df_320 = pd.read_csv("data/4_15/320_strains.csv")
-    # match_strains =[]
-    # for s in df_320["320_strains"].unique():match_strains.append(s)
-    # df = df[~df[0].isin(match_strains)]
-
-    ### to analyze only august and september run 9_21
-    # dfwave = pd.read_excel("/home/tmhsxs240/COVID_19/data/10_23/strains_aug_sept.xlsx")
-    # keepstrains = dfwave.Strain.values
-    # print(keepstrains[0:10])
-    # print(keepstrains[-10:])
-    # dfwave_strains = df[df[0].isin(keepstrains)]
-    # df = df[df[0] == "MN908947"]
-    # print("kept Reference strains")
-    # print(df.shape)
-    # print(df.head())
-    # df = df.append(dfwave_strains)
-    # print("kept all strains for this run")
-    # print(df.shape)
-    # print(df.head())
-
-    ### to analyze removing september 9_18
-    # dfwave = pd.read_excel("/home/tmhsxs240/COVID_19/data/sept_strains.xlsx")
-    # keepstrains = dfwave.Strain.values
-    # print(keepstrains[0:10])
-    # df = df[~df[0].isin(keepstrains)]
-    # print("remove sept strains")
-    # print(df.shape)
-    # print(df.head())
-
-
+    print("before removing epi and nonreference columns..."+str(df.shape))
     ###keep inhouse samples only
     df = df[~df[0].str.contains("EPI_ISL")]
-    #### remove nt from samples where n is present
-    # df = df[(df != 'n').all(axis=1)]
-    ### remove any -
     df = df.drop(df.columns[df.iloc[0,:] =='-'],axis=1)
 
-    print("after removing ...")
+    print("after completing filter...")
     print(df.shape)
     print(df.head())
 
     return df
 
+# def mismatchCount(df):
+#     mismatch =[]
+#     mismatch.append(0)
+#     for column in df.columns[1:]:
+#         df_clean = df[df[column].isin(['a','t','g','c'])]
+#         mismatch.append(sum(df_clean[column]!= df_clean[df_clean["id"]=="MN908947"][column].values[0]))
+#     return mismatch
+
+
 def mismatchCount(df):
     mismatch =[]
-    for column in df:
-        if column =='id':
-            mismatch.append(0)
-        else:
-            df_clean = df[df[column].isin(['a','t','g','c'])]
-            mismatch.append(sum(df_clean[column]!= df_clean.ix[0,column]))
+    mismatch.append(0)
+    for column in df.columns[1:]:
+        ref_seq = df[df["id"]=="MN908947"][column].values[0]
+        var_table = df[column].value_counts()
+        var_sum=0
+        for v in var_table.keys():
+            if v!=ref_seq and v in ["a","t","g","c"]:
+                var_sum += var_table[v]
+        mismatch.append(var_sum)
     return mismatch
 
 def addVariants(df):
@@ -145,7 +127,9 @@ def analyzeGenomicRegion(alignment_file,region,region_name):
     all_strains.extend(sequenceFromAlignment(alignment_file,region_name,region,adjustment=18))
     df = pd.DataFrame(all_strains)
 
-    df = filterMainAlignment(df)
+    return df
+
+def getVariantsTable(df,region_name):
 
     if region_name == "nsp12":
         region_start = 13442
@@ -159,7 +143,11 @@ def analyzeGenomicRegion(alignment_file,region,region_name):
     for x in range(region_start,region_stop,1): col.append(x)   ### +1 to match with ncbi indexing starting with 1
     df.columns = col
 
+    print("Calculating mismatch")
+
     mismatch = mismatchCount(df)
+
+    print("Completed calculating mismatch")
 
     df2 = df.T
     df2.rename(columns=df2.iloc[0],inplace=True)
@@ -168,15 +156,19 @@ def analyzeGenomicRegion(alignment_file,region,region_name):
     df2['gene']=region_name
     df2 = df2[df2["mismatch_count"]>0]
 
-
+    print("Calculating variants")
     df2["variants"] = addVariants(df2)
+
+    print("Calculating strains with variants")
     df2["variants_Info"] = addVariantsInfo(df2)
+
     df2 = df2[['index', 'MN908947','mismatch_count', 'gene', 'variants','variants_Info']]
     df2.columns = ['NTA_Genomic_Locus', 'NTA_Reference','NTA_Mismatch_Count', 'NTA_Gene', 'NTA_Variants','NTA_Variants_Info']
 
     return df2
 
 def addAnnotation(df,out_dir):
+    print("Starting annotation")
     vcf_file = []
     chr_pos_ref_alt = []
     for indx,row in df.iterrows():
@@ -218,6 +210,8 @@ def addAnnotation(df,out_dir):
     return df_ref
 
 def curationAfterAnnotation(df,region_name,out_dir):
+    print("Starting annotation curation")
+
     VEP_FILE=out_dir+"nta_covid.vcf.snpeff"
     header=[]
     with open(VEP_FILE) as myfile:
@@ -336,5 +330,7 @@ if __name__ == '__main__':
     out_dir= args.out_dir
 
     df = analyzeGenomicRegion(alignment_file,region,region_name)
+    df = filterMainAlignment(df)
+    df = getVariantsTable(df,region_name)
     df_annot = addAnnotation(df,out_dir)
     curationAfterAnnotation(df_annot,region_name,out_dir)

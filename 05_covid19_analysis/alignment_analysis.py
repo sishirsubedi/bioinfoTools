@@ -126,6 +126,218 @@ def tableGenomicMutations(alignment_file,out_file):
     else:
         return df_strains
 
+def tableGenomicMutationsMultiple(out_file):
+
+    print("processing..5085")
+    filt = []
+    #### read alignment files for reference
+    alignment = AlignIO.read("/home/tmhsxs240/COVID_19/data/4_15/Houston.4-14.clean.fa","fasta")
+    for line in alignment:
+        temp =[]
+        temp.append(line.id)        
+        print(line.id)
+        for nt in str(line.seq):
+            temp.append(nt)
+        
+        filt.append(temp)
+        break
+
+    alignment_file ="/home/tmhsxs240/COVID_19/data/8_11_all_5085/Houston.Aug12.clean.fa"
+    #### read alignment files
+    alignment = AlignIO.read(alignment_file,"fasta")
+    # filt = []
+
+    for line in alignment:
+        temp =[]
+        temp.append(line.id)
+        for nt in str(line.seq):
+            temp.append(nt.lower())
+        filt.append(temp)
+    
+    df = pd.DataFrame(filt)
+    df = df.drop(df.columns[df.iloc[0,:] =='-'],axis=1)
+
+
+
+    region_start = 266
+    region_stop = 266+(len(df.columns)-1)
+
+    col = []
+    col.append("strain")
+    for x in range(region_start,region_stop,1): col.append(x)   ### +1 to match with ncbi indexing starting with 1
+    df.columns = col
+
+    print(df.shape)
+    print(df.head())
+
+    print("processing previous nta")
+    filt = []
+    padding_novaseq = 16
+    #### read alignment files for reference
+    alignment = AlignIO.read("/home/tmhsxs240/COVID_19/data/4_15/Houston.4-14.clean.fa","fasta")
+    for line in alignment:
+        temp =[]
+        temp.append(line.id)        
+        print(line.id)
+        for i in range(padding_novaseq):
+            temp.append("-")
+        for nt in str(line.seq):
+            temp.append(nt)
+        
+        filt.append(temp)
+        break
+
+
+    alignment_file ="/home/tmhsxs240/COVID_19/data/11_20/Nov-19.trimmed.clean.fa"
+    #### read alignment files
+    alignment = AlignIO.read(alignment_file,"fasta")
+    # filt = []
+
+    for line in alignment:
+        temp =[]
+        temp.append(line.id)
+        for nt in str(line.seq):
+            temp.append(nt.lower())
+        filt.append(temp)
+
+
+    df_p2 = pd.DataFrame(filt)
+    print(df_p2.shape)
+    print(df_p2.head())
+
+    ### remove any "-" from the reference
+    df_p2 = df_p2.drop(df_p2.columns[df_p2.iloc[0,:] =='-'],axis=1)
+    df_p2 = df_p2.drop(df_p2.columns[df_p2.iloc[0,:].isnull()],axis=1)
+
+    region_start = 266
+    region_stop = 266+(len(df_p2.columns)-1)
+
+    col = []
+    col.append("strain")
+    for x in range(region_start,region_stop,1): col.append(x)   ### +1 to match with ncbi indexing starting with 1
+    df_p2.columns = col
+
+    print(df_p2.shape)
+    print(df_p2.head())
+
+
+
+    print("processing new nta")
+    filt = []
+    padding_novaseq = 26
+    #### read alignment files for reference
+    alignment = AlignIO.read("/home/tmhsxs240/COVID_19/data/4_15/Houston.4-14.clean.fa","fasta")
+    for line in alignment:
+        temp =[]
+        temp.append(line.id)        
+        print(line.id)
+        for i in range(padding_novaseq):
+            temp.append("-")
+        for nt in str(line.seq):
+            temp.append(nt)
+        
+        filt.append(temp)
+        break
+
+
+    alignment_file ="/home/tmhsxs240/COVID_19/data/12_1/Nov-29.trimmed.clean.fa"
+    #### read alignment files
+    alignment = AlignIO.read(alignment_file,"fasta")
+    # filt = []
+
+    for line in alignment:
+        temp =[]
+        temp.append(line.id)
+        for nt in str(line.seq):
+            temp.append(nt.lower())
+        filt.append(temp)
+
+
+    df_p3 = pd.DataFrame(filt)
+    print(df_p3.shape)
+    print(df_p3.head())
+
+    ### remove any "-" from the reference
+    df_p3 = df_p3.drop(df_p3.columns[df_p3.iloc[0,:] =='-'],axis=1)
+    df_p3 = df_p3.drop(df_p3.columns[df_p3.iloc[0,:].isnull()],axis=1)
+
+    region_start = 266
+    region_stop = 266+(len(df_p3.columns)-1)
+
+    col = []
+    col.append("strain")
+    for x in range(region_start,region_stop,1): col.append(x)   ### +1 to match with ncbi indexing starting with 1
+    df_p3.columns = col
+
+    print(df_p3.shape)
+    print(df_p3.head())
+
+   
+    ################combine all #################
+
+    print(df.shape)
+    df = df.append(df_p2)
+    df.reset_index(inplace=True,drop=True)
+
+    print(df.shape)
+    df = df.append(df_p3)
+    df.reset_index(inplace=True,drop=True)
+
+    print(df.shape)
+    df.drop_duplicates("strain",inplace=True)
+    print(df.shape)
+
+
+
+
+    df2 = df.T
+    df2.rename(columns=df2.iloc[0],inplace=True)
+    df2.drop(df2.index[0], inplace = True)
+
+    ############ run gene wise
+    # region_name ="S"
+    # if region_name == "nsp12":
+    #     region_start = 13442
+    #     region_stop = 16237
+    # elif region_name =="S":
+    #     region_start = 21563
+    #     region_stop = 25385
+    
+
+    # print("selecting region--"+region_name)
+    # print(df2.shape)
+    # df2 = df2.iloc[region_start:region_stop,:]
+    # print(df2.shape)
+    ### to calculate muations per strain in genome
+
+
+    mismatch =[]
+    strain_counter = 0
+    mismatch.append(["Reference",0,[]])
+    for column in df2.columns[1:]:
+        mutation_counter = 0
+        mutation = []
+        for indx,ref,alt in zip(df2.index.values,df2["MN908947"].values,df2[column].values):
+            if ref != alt and alt in ['a','t','g','c']:
+                mutation.append(ref.upper()+str(indx)+alt.upper())
+                mutation_counter += 1
+        mismatch.append([column,mutation_counter,mutation])
+        
+        strain_counter += 1
+        if strain_counter % 1000 == 0:
+            print("genomewide mutation table completed for.."+str(strain_counter)+" strains")
+
+    df_strains = pd.DataFrame(mismatch)
+    df_strains.columns = ["Strain","mutation_count","mutation_info"]
+    df_strains["Strain"] = [x.replace("-0","-") for x in df_strains["Strain"].values]
+    # df_strains.to_csv("muttable.csv",index=False)  
+
+    if out_file != None:
+        df_strains.to_csv(out_file,index=False)
+    else:
+        return df_strains
+
+
 def queryRegion(alignment_file,out_file):
 
     filt = []
@@ -416,26 +628,22 @@ if __name__ == '__main__':
         region=[21508,25330]
         position=23403
 
-        alignment_file="data/8_11_all_5085/Houston.Aug12.clean.fa"
-        df_5805 = getStrainswithPosition(alignment_file,region,position,out_file=None)
+        alignment_file ="/home/tmhsxs240/COVID_19/data/8_11_all_5085/Houston.Aug12.clean.fa"
+        df_5805 = getStrains(alignment_file,out_file=None)
         df_5805["group"]="g1_5805"
 
-        alignment_file="data/10_23_all_augsept/Houston.Oct.clean.fa"
-        df_oct = getStrainswithPosition(alignment_file,region,position,out_file=None)
-        df_oct["group"]="g2_JAS"
+        alignment_file ="/home/tmhsxs240/COVID_19/data/11_20/Nov-19.trimmed.clean.fa"
+        df_oct = getStrains(alignment_file,out_file=None)
+        df_oct["group"]="g2_NOVA1_4"
 
-        alignment_file="data/11_3/NovaSeq-D5.trimmed.clean.fa"
-        df_nova1 = getStrainswithPosition(alignment_file,region,position,novaseq_adj=17,out_file=None)
-        df_nova1["group"]="g3_NOVA1"
-
-        alignment_file="data/11_15/Nov15-With-Ns.clean.fa"
-        df_nova2_3 = getStrainswithPosition(alignment_file,region,position,novaseq_adj=18,out_file=None)
-        df_nova2_3["group"]="g4_NOVA2_3"
+        alignment_file ="/home/tmhsxs240/COVID_19/data/12_1/Nov-29.trimmed.clean.fa"
+        df_nova1 = getStrains(alignment_file,out_file=None)
+        df_nova1["group"]="g3_NOVA_R5"
 
 
         df_all = df_5805.append(df_oct)
         df_all = df_all.append(df_nova1)
-        df_all = df_all.append(df_nova2_3)
+
 
             ## remove 1255 and 1343 and two training runs
         df_all = df_all[df_all["id"] != "MCoV-1255"]
