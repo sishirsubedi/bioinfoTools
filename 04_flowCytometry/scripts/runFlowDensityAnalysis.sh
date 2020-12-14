@@ -41,7 +41,7 @@ for celltype in $(echo $CELLTYPES | tr "-" "\n") ; do
 	echo "step 3: PCA visualization"
   	/opt/python3/bin/python PCAanalysis_visualization.py ${celltype} "${result_dir} ${celltype}_result.csv" ${result_dir}
 	
-	echo "step 3: Comprehensive expression analysis visualization"
+	echo "step 4: Comprehensive expression analysis visualization"
   	/opt/python3/bin/python comprehensiveExpressionAnalysis.py ${celltype} "${result_dir}Independent/ ${celltype}_result.csv" "${result_dir}/Independent/"
 	
 done
