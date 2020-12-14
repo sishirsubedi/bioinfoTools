@@ -1,4 +1,3 @@
-
 library(flowCore)
 library(flowDensity)
 
@@ -25,7 +24,7 @@ getBCellsGate <- function (flow_data){
     # Second call to flowDensity
     fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), gates=c(FALSE, NA),percentile=c(NA, 0.50))
 
-    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]))
 
     return(fd_result)
 
@@ -64,19 +63,13 @@ if ( (markers[1]=="V450.A") && (markers[2]=="SSC.A") && (markers[3]=="POS_NEG") 
   plot(flow_data ,fd_result)
   dev.off()
 
-} else if ( (markers[1]=="V450.A") && (markers[2]=="PerCP.Cy5.5.A") && (markers[3]=="POS_POS")  && (markers[4]=="B-CD5") ) {
+}else if ( (markers[1]=="V450.A") && (markers[2]=="PerCP.Cy5.5.A") && (markers[3]=="POS_POS")  && (markers[4]=="B-CD5") ) {
 
-  b_cell_gate <- getBCellsGate(flow_data)
-
-  fd_result <- flowDensity(b_cell_gate ,channels = c(markers[1],markers[2]), position = c(T,T))
+  fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,T))
 
   png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_",markers[4],"_dist_plot.png"))
   plot(flow_data ,fd_result)
   dev.off()
-
-} else if ( (markers[1]=="PE.A") && (markers[2]=="FITC.A") && (markers[3]=="POS_NEG")  && (markers[4]=="B-CD5-L") ) {
-
-} else if ( (markers[1]=="PE.A") && (markers[2]=="FITC.A") && (markers[3]=="NEG_POS")  && (markers[4]=="B-CD5-K") ) {
 
 }else if ( (markers[1]=="APC.A") && (markers[2]=="SSC.A") && (markers[3]=="POS_NEG")  && (markers[4]=="CD10") ) {
 
@@ -85,7 +78,7 @@ if ( (markers[1]=="V450.A") && (markers[2]=="SSC.A") && (markers[3]=="POS_NEG") 
       # Second call to flowDensity
       fd_gate2 <- flowDensity(obj=fd_gate1, channels=c(markers[1],markers[2]),position=c(TRUE, FALSE), gates=c(FALSE, NA),percentile=c(NA, 0.50))
 
-      fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]) )
+      fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,F),gates=c(fd_gate1@gates[1],fd_gate2@gates[2]))
 
 
       png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_",markers[4],"_dist_plot.png"))
@@ -133,14 +126,13 @@ if ( (markers[1]=="V450.A") && (markers[2]=="SSC.A") && (markers[3]=="POS_NEG") 
     # First call to flowDensity
     fd_gate1 <- flowDensity(obj=flow_data, channels=c(markers[1],markers[2]),position=c(TRUE, NA), percentile=c(0.99, NA))
 
-    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,NA),gates=c(fd_gate1@gates[1]) )
+    fd_result <- flowDensity(flow_data ,channels = c(markers[1],markers[2]), position = c(T,NA),gates=c(fd_gate1@gates[1]))
 
     png(paste(file_name,"_",markers[1],"_",markers[2],"_",markers[3],"_",markers[4],"_dist_plot.png"))
     plot(flow_data ,fd_result)
     dev.off()
 
 }
-
 
   return(fd_result)
 
@@ -166,24 +158,21 @@ applyFlowDensity <- function(flow_data,markers,plot,file_name) {
 
 }
 
-file_path <- "/home/hhadmin/flowCyto/data/B_CELLS_103_INPUT"
-out_path <- "/home/hhadmin/flowCyto/data/B_CELLS_RESULT_OUTPUT_BCells_completed/"
+args = commandArgs(trailingOnly=TRUE)
 
+file_path <- args[1]
+out_path <- args[2]
 file_list <- list.files(file_path,full.names=TRUE)
 
 result_summary <- list()
 
 for (i in 1:length(file_list)){
 
-  #if(i>5){break;}
-
   flow_data <- read.FCS(file_list[i],transformation=FALSE,alter.names=TRUE)
-  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][7],"_")[[1]][1]
+  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][5],"_")[[1]][1]
   print("processing...")
   print(file_list[i])
   print(file_name)
-
-  if(file_name == "FLW194580"){next;}
 
   ####transform data
   df_allcolnames <- colnames(as.data.frame(exprs(flow_data)))
@@ -225,4 +214,6 @@ for (i in 1:length(file_list)){
 }
 
 #print(result_summary)
-write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,"B_CELLS_result.csv"), quote=F,sep=",",row.names=F,col.names=F)
+write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,"Bcells_result.csv"), quote=F,sep=",",row.names=F,col.names=F)
+
+

@@ -1,7 +1,5 @@
-
 library(flowCore)
 library(flowDensity)
-
 
 basicGate <- function (flow_data){
     rectGate <- rectangleGate(filterId="Basic",
@@ -68,9 +66,9 @@ applyFlowDensity <- function(flow_data,markers,plot,file_name) {
 
 }
 
-file_path <- "/home/hhadmin/flowCyto/data/CD34"
-#out_path <- "/home/hhadmin/flowCyto/data/B_CELLS_RESULT_OUTPUT_BCells_parents/"
-out_path <- "/home/hhadmin/flowCyto/data/B_CELLS_RESULT_OUTPUT_temp_cd34/"
+args = commandArgs(trailingOnly=TRUE)
+file_path <- args[1]
+out_path <- args[2]
 
 file_list <- list.files(file_path,full.names=TRUE)
 
@@ -81,7 +79,7 @@ for (i in 1:length(file_list)){
   #if(i>5){break;}
 
   flow_data <- read.FCS(file_list[i],transformation=FALSE,alter.names=TRUE)
-  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][7],"_")[[1]][1]
+  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][5],"_")[[1]][1]
   print("processing...")
   print(file_list[i])
   print(file_name)
@@ -116,4 +114,4 @@ for (i in 1:length(file_list)){
 }
 
 #print(result_summary)
-write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,"CD34_result.csv"), quote=F,sep=",",row.names=F,col.names=F)
+write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,"CD34cells_result.csv"), quote=F,sep=",",row.names=F,col.names=F)

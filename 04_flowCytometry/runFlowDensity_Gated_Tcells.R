@@ -1,7 +1,5 @@
-
 library(flowCore)
 library(flowDensity)
-
 
 basicGate <- function (flow_data){
     rectGate <- rectangleGate(filterId="Basic",
@@ -147,22 +145,22 @@ applyFlowDensity <- function(flow_data,markers,plot,file_name) {
 
     return(paste(",",paste("[",markers[1],markers[2],markers[3],"]"),",",fd_result@cell.count,",",fd_result@proportion,",",marker_index))
 
-    #return(paste(",",paste("[",markers[1],markers[2],markers[3],"]"),",",fd_result@cell.count,",",fd_result@proportion))
-
 }
 
-file_path <- "/home/hhadmin/flowCyto/data/T_CELLS_103_INPUT"
-out_path <- "/home/hhadmin/flowCyto/data/T_CELLS_RESULT_OUTPUT/"
+args = commandArgs(trailingOnly=TRUE)
+file_path <- args[1]
+out_path <- args[2]
+
+print(file_path)
+print(out_path)
 file_list <- list.files(file_path,full.names=TRUE)
 
 result_summary <- list()
 
 for (i in 1:length(file_list)){
 
-  #if(i>2){break;}
-
   flow_data <- read.FCS(file_list[i],transformation=FALSE,alter.names=TRUE)
-  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][7],"_")[[1]][1]
+  file_name <- strsplit(strsplit(flow_data@description$FILENAME, "/")[[1]][5],"_")[[1]][1]
   print("processing...")
   print(file_list[i])
   print(file_name)
@@ -199,4 +197,4 @@ for (i in 1:length(file_list)){
 }
 
 #print(result_summary)
-write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,"T_CELLS_result.csv"), quote=F,sep=",",row.names=F,col.names=F)
+write.table(as.data.frame(t(as.data.frame(result_summary))),file=paste(out_path,"Tcells_result.csv"), quote=F,sep=",",row.names=F,col.names=F)
