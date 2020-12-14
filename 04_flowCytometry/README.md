@@ -13,3 +13,4 @@
 
 ## Example
   bash runFlowDensityAnalysis.sh -t Tcells-Bcells-CD34cells
+  ![Screenshot](workflow.png)
