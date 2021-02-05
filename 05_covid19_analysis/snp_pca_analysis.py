@@ -14,8 +14,6 @@ from sklearn import decomposition
 
 
 df_db = pd.read_csv("1_StrainsAndMutations_entire_genome.csv")
-df_db = df_db[df_db.Strain!="MCoV-1255"]
-df_db = df_db[df_db.Strain!="MCoV-1343"]
 df_db = df_db[df_db.mutation_count!=0]
 
 

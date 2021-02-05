@@ -4,10 +4,6 @@ from Bio import AlignIO, SeqIO, Entrez
 import re
 import sys
 
-
-#/opt/python3/bin/python3 check_fasta.py data/8_11/8_11_fastas/MCoV-6781.consensus.fasta 22661
-
-
 def getsubstring(position,mode):
     if mode=='query':
         ref_seq = []
@@ -22,7 +18,7 @@ def getsubstring(position,mode):
 
 
 ##################################################
-# sample ="/net/fs01.cluster.com/home/tmhsxs240/COVID_19/data/8_11/8_11_fastas/MCoV-6781.consensus.fasta"
+# sample =""
 sample=sys.argv[1]
 position=int(sys.argv[2])
 
