@@ -17,7 +17,7 @@ def generate_batch_alignment(REFERENCE,file_dir,out_dir):
 
     df_all_strains = pd.DataFrame(all_fasta_files)
 
-    CHUNK_SIZE = 500
+    CHUNK_SIZE = 100
 
     index_chunks = chunked(df_all_strains.index, CHUNK_SIZE)
 
@@ -34,7 +34,7 @@ def generate_batch_alignment(REFERENCE,file_dir,out_dir):
         
         bashCommunicator(cmd)
 
-        cmd = " mafft --thread 24 --reorder %s > %s " % (out_dir+str(counter)+"_MN908947_merged.fasta",
+        cmd = " mafft --thread 24 --reorder --retree 1  %s > %s " % (out_dir+str(counter)+"_MN908947_merged.fasta",
                                                         out_dir+str(counter)+"_MN908947_merged.mafft_algn.fasta")
 
         print("running mafft aligner ..."+str(counter))

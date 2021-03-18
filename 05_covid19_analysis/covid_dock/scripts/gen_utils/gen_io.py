@@ -1,5 +1,6 @@
 import os
 import sys
+import datetime
 
 
 def bashCommunicator(command,output_expected=False):
@@ -62,4 +63,17 @@ def writesummary(summary,filename):
     f.close() 
 
 
+def read_run_params():
 
+    import yaml
+
+    with open('/home/tmhsxs240/COVID_19/container/config/config.yaml') as f:
+        params = yaml.load(f)
+    
+    return params
+
+
+def log_msg(msg):
+    tt = datetime.datetime.now()
+    sys.stderr.write("[%s] %s\n"%(tt.strftime("%Y-%m-%d %H:%M:%S"), msg))
+    sys.stderr.flush()

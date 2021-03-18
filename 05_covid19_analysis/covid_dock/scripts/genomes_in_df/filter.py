@@ -3,9 +3,11 @@ from Bio import AlignIO
 import argparse
 import ast
 import collections, numpy
-from alignment.alignment_tools import analyzeGenomicRegionwithReference
+import os
+import sys
+sys.path.append(os.path.dirname(__file__))
 
-def filterMainAlignment(df):
+def filterMainAlignment(df,mode=None):
 
     print("before removing repeat markers..."+str(df.shape))
 
@@ -33,6 +35,14 @@ def filterMainAlignment(df):
     ###keep inhouse samples only
     df = df[~df[0].str.contains("EPI_ISL")]
     df = df.drop(df.columns[df.iloc[0,:] =='-'],axis=1)
+    df = df.drop(df.columns[df.iloc[0,:].isnull()],axis=1)
+
+    if mode =="cds":
+        col = []
+        col.append("id")
+        for x in range(266,29675,1): col.append(x)   
+        df.columns = col
+
 
     print("after completing filter...")
     print(df.shape)
@@ -40,46 +50,3 @@ def filterMainAlignment(df):
 
     return df
 
-
-def updateCoordinates(df,region_name):
-
-    if region_name == "nsp12":
-        region_start = 13442
-        region_stop = 16237
-    elif region_name =="S":
-        region_start = 21563
-        region_stop = 25385
-
-    col = []
-    col.append("id")
-    for x in range(region_start,region_stop,1): col.append(x)   ### +1 to match with ncbi indexing starting with 1
-    df.columns = col
-
-    return df
-
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="analyze SNPs from alignment file",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("--alignment_file", help="alignment file")
-    parser.add_argument("--protein", help="protein name")
-    parser.add_argument("--out_file", help="output file")
-    args = parser.parse_args()
-
-    alignment_file = args.alignment_file
-    protein = args.protein
-    out_file= args.out_file
-
-    print(alignment_file)
-    print(protein)
-    print(out_file)
-
-
-    df = analyzeGenomicRegionwithReference(alignment_file,protein)
-    df = filterMainAlignment(df)
-    df = updateCoordinates(df,protein)
-
-    df.to_csv(out_file,index=False)
