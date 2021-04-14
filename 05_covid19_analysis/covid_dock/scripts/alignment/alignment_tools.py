@@ -49,3 +49,16 @@ def analyzeEntireGenomewithReference(alignment_file):
 
     return df
 
+def convert_df_toseq(df,fname):
+    from Bio import AlignIO, SeqIO, Entrez
+    from Bio.SeqRecord import SeqRecord
+    from Bio.Seq import Seq
+    from Bio.Align import MultipleSeqAlignment
+
+    filt = []
+    for indx,row in df.iterrows():
+        info = row[0]
+        temp =SeqRecord(Seq("".join([x for x in row[1:].values])),info,info,info)
+        filt.append(temp)
+    align1 = MultipleSeqAlignment(filt)
+    AlignIO.write(align1, fname+"_alignment.fa","fasta")

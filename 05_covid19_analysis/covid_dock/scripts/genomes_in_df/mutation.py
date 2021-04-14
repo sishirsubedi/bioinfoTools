@@ -133,9 +133,14 @@ def generate_snp_table(df_muttable,db,out_dir,tag):
 
     sel_runs = sorted([x for x in df_db.run_id_seq.unique() if "low_quality" not in x])
 
+
+    print(sel_runs)
+    print(df_muttable.head(3))
     per_run_dfs = []
 
     for runid in sel_runs:
+
+        print("current run..."+runid)
 
         sel_strains = list(df_db[df_db.run_id_seq==runid]["MCoVNumber"])
         df_run = df_muttable[df_muttable.strain.isin(sel_strains)]

@@ -53,6 +53,20 @@ class covid_variants:
     "B_1_2" : 9
     }
     
+    pangolin =[
+    "B.1.1.7" ,
+    "B.1.429" ,
+    "B.1.427" ,
+    "B.1.351" ,
+    "P.1" ,
+    "P.2" ,
+    "R.1" ,
+    "B.1.525" ,
+    "B.1.526"  
+    ]
+    
+
+    
 def get_covid_variants():
     
     var_dict =  {
@@ -220,6 +234,50 @@ def get_covid_variants():
     'C28472T':'N-P67S',
     'C28869T':'N-P199L'
     }
+
+    # 'Brittany' : {
+    # '':'ORF1ab-T265I',
+    # '':'ORF1ab-N1324S',
+    # '': 'ORF1ab-T1638I',
+    # '': 'ORF1ab-S2261Y',
+    # '': 'ORF1ab-Y3160H',
+    # '': 'ORF1ab-L3606F',
+    # '': 'ORF1ab-P4715L',
+    # '': 'ORF1ab-Q5214R',
+    # '': 'ORF1ab-L6082F',
+    # '': 'ORF1ab-T6938I',
+    # '': 'ORF1ab-K7075R',
+
+    # '':'ORF3a-Q57H',
+
+    # '':'ORF6-I32X',
+
+    # '':'ORF7a-*22R',
+
+    # '':'ORF7b-M1K',
+
+    # '':'ORF8-I47V',
+
+    # '':'ORF9b-I5T',
+
+    # '':'S-H66D',
+    # '':'S-G142V',
+    # '':'S-D215G',
+    # '':'S-V483A',
+    # '':'S-D614G',
+    # '':'S-H655Y',
+    # '':'S-G669S',
+    # '':'S-Q949R',
+    # '':'S-N1187D',
+
+    # '':'E-F20L',
+    # '':'E-T30I',
+
+    # '':'M-H125Y',
+    # '':'N-T325I'
+    # }
+
+
     }
 
     return var_dict
