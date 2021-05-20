@@ -31,7 +31,25 @@ def genomewide_mutations(df,out_dir,tag):
 
     df_muttable = mutation.add_aa_mutations_column(df_muttable,out_dir,tag)
 
+    log_msg("generating genome-wide Deletions..")
+
+    df_muttable = mutation.add_aa_deletions_column(df_muttable,out_dir,tag)
+
     df_muttable.to_excel(out_dir+"1_genomic_mutations_"+tag+".xlsx",index=False)
+
+
+def genomewide_mutations_outside(df,out_dir,tag,out_tag):
+
+    log_msg("generating genome-wide mutations..for outside samples")
+
+    df_out = df[df['id'].str[0:4].isin([out_tag,'MN90'])] 
+
+    df_muttable = mutation.genomeWideMutationTable(df_out)
+
+    df_muttable = mutation.add_aa_mutations_column(df_muttable,out_dir,tag)
+
+    df_muttable.to_excel(out_dir+"1_genomic_mutations_ocov_"+tag+".xlsx",index=False)
+
 
 def get_variants_match_mutations(df,variants):
     all_variants=[]
@@ -98,7 +116,7 @@ def variant_screener_per_variant_summary(df,db,out_dir,tag):
     dfjoin = dfjoin[dfjoin.variant_db_Match=="both"]
     dfjoin.COLLECTION_DT = pd.to_datetime(dfjoin.COLLECTION_DT)
 
-    writer = pd.ExcelWriter(out_dir+"3_variants_screen_per_variant_summary_"+tag+".xlsx", engine='xlsxwriter',
+    writer = pd.ExcelWriter(out_dir+"3_variant_screening_per_variant_summary_"+tag+".xlsx", engine='xlsxwriter',
     datetime_format='yyyy-mm-dd hh:mm:ss', date_format='yyyy-mm-dd')
 
     vois = covid.covid_variants.snvs_threshold
@@ -200,7 +218,7 @@ def variant_screener_per_variant_summary_with_pangolin(df,db,db_pangolin,out_dir
     print(dfjoin.head())
 
 
-    writer = pd.ExcelWriter(out_dir+"3_variants_screen_per_variant_summary_pangolin_"+tag+".xlsx", engine='xlsxwriter',
+    writer = pd.ExcelWriter(out_dir+"3_variant_screening_per_variant_summary_pangolin_"+tag+".xlsx", engine='xlsxwriter',
     datetime_format='yyyy-mm-dd hh:mm:ss', date_format='yyyy-mm-dd')
 
     vois = covid.covid_variants.pangolin
@@ -240,7 +258,7 @@ def variant_screener_per_variant_summary_with_pangolin(df,db,db_pangolin,out_dir
     dfjoin_mcov_variant = pd.merge(df_db,df_mcov_variant,left_on="MCoVNumber",right_on="strain",how="left")
     
     
-    mcov_first_variant_per_patient = dfjoin_mcov_variant.sort_values(by='COLLECTION_DT', ascending=True).drop_duplicates(['variant', 'MRN'])['MCoVNumber'].values
+    mcov_first_variant_per_patient = dfjoin_mcov_variant[dfjoin_mcov_variant.quality=="HQ"].sort_values(by='COLLECTION_DT', ascending=True).drop_duplicates(['variant', 'MRN'])['MCoVNumber'].values
     dfjoin_mcov_variant['Is_First_For_Patient'] = [1 if x in mcov_first_variant_per_patient else 0 for x in dfjoin_mcov_variant["MCoVNumber"]]    
     dfjoin_mcov_variant.to_csv(out_dir+"4_mcov_strain_variant_map_covid_pangolin_db_input"+tag+".csv",index=False)
 
