@@ -67,8 +67,8 @@ def read_run_params():
 
     import yaml
 
-    with open('/home/tmhsxs240/COVID_19/container/config/config.yaml') as f:
-        params = yaml.load(f)
+    with open('/storage/scratch/covid/container/config/config.yaml') as f:
+        params = yaml.safe_load(f)
     
     return params
 

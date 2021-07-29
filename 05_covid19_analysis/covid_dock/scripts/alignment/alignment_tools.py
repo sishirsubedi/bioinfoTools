@@ -35,6 +35,8 @@ def genomicSequenceFromAlignment(alignment_file,reference=False,adjustment=0):
 def analyzeEntireGenomewithReference(alignment_file):
 
     all_strains = genomicSequenceFromAlignment(alignment_file)
+
+
     df = pd.DataFrame(all_strains)
 
     df.sort_index(ascending=False,inplace=True)

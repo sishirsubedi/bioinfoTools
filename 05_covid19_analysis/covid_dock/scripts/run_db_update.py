@@ -2,32 +2,33 @@ import pandas as pd
 import os
 import sys
 sys.path.append(os.path.dirname(__file__))
-from gen_utils.gen_io import read_run_params,log_msg
+from gen_utils.gen_io import read_run_params,log_msg,bashCommunicator
 from alignment.alignment_tools import strainFromAlignment
 from gen_utils.gen_io import read_run_params
 from genomes_in_df.filter import filterMainAlignment
 
 
-def generate_mcov_db(ref_dir,lotdate):
+def generate_mcov_db(ref_dir):
     
-    ### read files ########
-    orders =  "1_orders_"+lotdate+".csv"
-    patients = "2_patients_"+lotdate+".csv"
-    sample_log = "3_CoVID_Sample_Log_"+lotdate+".xlsx"
-    out_file = "4_Curated_MCOV_MRN_Strains_"+lotdate+".xlsx"
+    orders =  "orders.csv"
+    patients = "patients.csv"
+    sample_log = "CoVID_Sample_Log.xlsx"
+    out_file = "4_Curated_MCOV_MRN_Strains.xlsx"
     #######################
-
+    bashCommunicator( "wget -P "+ ref_dir +" ")
     df_orders = pd.read_csv(ref_dir+orders, dtype = {'MRN': str,'ORDER_ID': str},low_memory=False)
     df_orders.drop_duplicates("ORDER_ID",inplace=True)
     df_orders = df_orders[['MRN','ORDER_ID','COLLECTION_DT','ORDERING_CLINIC_ID',
     'ORDERING_CLINIC_NAME', 'FACILITY','ADMISSION_DT','DISCHARGE_DT','HIS_PATIENT_TYPE']]
 
+    bashCommunicator( "wget -P "+ ref_dir +" ")
     df_patients = pd.read_csv(ref_dir+patients, dtype = {'MRN': str,'ORDER.ORDER_ID': str},low_memory=False)
     df_patients = df_patients[['MRN', 'ZIP', 'ORDER.ORDER_ID']]
     df_patients.rename(columns={'ORDER.ORDER_ID':'ORDER_ID'},inplace=True)
     df_patients.drop_duplicates("ORDER_ID",inplace=True)
     df_patients['ZIP'] = [str(x)[0:5] for x in df_patients['ZIP']] 
 
+    bashCommunicator("cp "+params["container"]+"temp/"+sample_log +" "+ ref_dir)
     df= pd.read_excel(ref_dir+sample_log)
     df = df[['Musser Lab No.', 'Full Order Number.2']]
     df.columns = ['MCoVNumber', 'ORDER_ID']
@@ -38,9 +39,9 @@ def generate_mcov_db(ref_dir,lotdate):
     dfjoin.to_excel(ref_dir+out_file,index=False)
 
 
-def mcov_order_id_dup_check(ref_dir,lotdate):
+def mcov_order_id_dup_check(ref_dir):
 
-    df = pd.read_excel(ref_dir+"4_Curated_MCOV_MRN_Strains_"+lotdate+".xlsx")
+    df = pd.read_excel(ref_dir+"4_Curated_MCOV_MRN_Strains.xlsx")
 
     df_dups = df[df["ORDER_ID"].isin(\
                 df.groupby("ORDER_ID")\
@@ -51,12 +52,12 @@ def mcov_order_id_dup_check(ref_dir,lotdate):
                 .sort_values("ORDER_ID")
     
     df_dups["dup_count"]=df_dups.groupby("ORDER_ID").transform('count')["MCoVNumber"]
-    df_dups.to_excel(ref_dir+"4_qc_duplicate_order_ids_"+lotdate+".xlsx",index=False)
+    df_dups.to_excel(ref_dir+"4_qc_duplicate_order_ids.xlsx",index=False)
 
 
-def generate_strain_ids(params,ref_dir,lotdate):
+def generate_strain_ids(params,ref_dir):
 
-    nta_input = params["container"]+params['nta_input']
+    nta_input = params["container"]+"input_alignment/"
 
     all_strains = []
     for run in sorted(params["nta_group_v1"]):
@@ -77,36 +78,22 @@ def generate_strain_ids(params,ref_dir,lotdate):
 
 
     df = pd.DataFrame(all_strains)
-
-    ##filter will keep first record and delete duplicates if present in later NTA file
     df = filterMainAlignment(df)
     df.columns = ["strain","run_group_analysis"]
 
-    # run_sample_count = dict(df["run_group_analysis"].value_counts())
-    # update_group = {}
-    # for run in run_sample_count:
-    #     update_group[run] = run.split('_')[1]+"_"+str(run_sample_count[run])
+    df_db = pd.read_excel(ref_dir+"4_Curated_MCOV_MRN_Strains.xlsx")
 
-    # df["run_group_analysis"] = [update_group[x] for x in df["run_group_analysis"]]
-
-
-    df_db = pd.read_excel(ref_dir+"4_Curated_MCOV_MRN_Strains_"+lotdate+".xlsx")
-
-    ##make sure we get sequences with mrn info from db
     df_db = df_db[df_db.sequence_order_patient_data_match=="both"]
 
     dfjoin = pd.merge(df_db,df,left_on="MCoVNumber",right_on="strain",how="outer",indicator=True)
 
     dfjoin.rename(columns={'_merge':'sequence_order_patient_alignment_data_match'},inplace=True)
 
-    ### make sure we get all good and low quality sequences with MRN info
-    ## remove UT sequences
     dfjoin = dfjoin[dfjoin.sequence_order_patient_alignment_data_match.isin(["both","left_only"])]
 
-    ## assign low quality tag for bad sequences
     dfjoin.loc[dfjoin.sequence_order_patient_alignment_data_match.isin(["left_only"]),["run_group_analysis"]]="pending_rungroup"
 
-    dfjoin.to_csv(ref_dir+"5_strains_run_group_analysis_table_upto_"+lotdate+".csv",index=False)
+    dfjoin.to_csv(ref_dir+"5_strains_run_group_analysis_table.csv",index=False)
 
 
 def update_run_id(x,y,z):
@@ -119,12 +106,9 @@ def update_run_id(x,y,z):
         new_id="Run00_2_afterpub_ONT"
     elif x=="pending_rungroup" and pd.notnull(y):
         new_id= y+"_low_quality"
-
+    elif pd.isnull(y):
+        new_id= "low_quality"
     elif x=="pending_rungroup" and pd.isnull(y):
-        ## if date is before december then "low quality"
-        # call it "low_quality"
-        # if it is after run1 :
-        #     call it "pending_rungroup"
 
         if z<pd.to_datetime("2020-12-30"):
             new_id = "low_quality"
@@ -137,14 +121,7 @@ def update_run_id(x,y,z):
 
 
 def update_all_LQ_in_run(dfjoin):
-    ## we have two cases here
-    # 1 . real low quality if only few of each run are lq
-    # 2. all from run are low quality
-    #   (need new function to change all run lq to "pending_analysis" )
-    
     count_table = dfjoin.run_id_seq.value_counts()
-
-    ###check if all samples in run are low quality
     check_runs = list(count_table[count_table>700].index)
 
     pending = []
@@ -168,32 +145,30 @@ def add_quality(x):
         return "HQ"
 
 
-def generate_rungroup_from_samplesheet(ref_dir,lotdate):
+def generate_rungroup_from_samplesheet(ref_dir):
 
     from pathlib import Path
-    path = Path(ref_dir+"samplesheet_logs/")
+    path = Path(params["container"]+"input_samplesheet/")
 
     df_combine = pd.DataFrame()
     for samplesheet in path.rglob('*.csv'):
-        run = samplesheet.name.split('_')[0].replace('NvS','')
-        df =  pd.read_csv(samplesheet,skiprows=20)
+        run = samplesheet.name.split('_')[0]+"_"+samplesheet.name.split('_')[1]
+        df =  pd.read_csv(samplesheet,skiprows=20,encoding= 'unicode_escape')
         df = df[["Sample_ID"]]
-        if len(run)==2:
-            run=run.replace("R","R0")
-        df["run_id"]=run.replace("R","Run")
+        if len(run.split('_')[1])<2:
+            run = run.replace("run_","run_0")
+        run = run.replace("r","R")
+        df["run_id"]=run
         df_combine = df_combine.append(df)
-    # df_combine.to_csv(out_dir+"mcov_rungroup_run19_2_22_2021.csv",index=False)
 
-    df_db = pd.read_csv(ref_dir+"5_strains_run_group_analysis_table_upto_"+lotdate+".csv")
+    df_db = pd.read_csv(ref_dir+"5_strains_run_group_analysis_table.csv")
 
     dfjoin = pd.merge(df_db,df_combine,left_on="MCoVNumber",right_on="Sample_ID",how="outer",indicator=True)
 
     dfjoin.rename(columns={'_merge':'sequence_to_alignment_samplesheet_data_match'},inplace=True)
 
-    ### make sure we remove mcovs from sample sheet such as UT Samples/Rice samples
     dfjoin = dfjoin[dfjoin.sequence_to_alignment_samplesheet_data_match.isin(["both","left_only"])]
-    
-    
+        
     dfjoin.COLLECTION_DT = pd.to_datetime(dfjoin.COLLECTION_DT)
 
     dfjoin["run_id_seq"] = list(map(update_run_id,dfjoin.run_group_analysis,dfjoin.run_id,dfjoin.COLLECTION_DT))
@@ -204,24 +179,22 @@ def generate_rungroup_from_samplesheet(ref_dir,lotdate):
 
     dfjoin["run_id_final"] = [x.replace("_low_quality","") for x in dfjoin["run_id_seq"] ]
 
-    ### save report
-    dfjoin.groupby(["run_group_analysis","run_id_seq"]).agg('count')["MCoVNumber"].reset_index().sort_values("run_id_seq").to_excel(ref_dir+"run_samplesheet_match_"+lotdate+".xlsx",index=False)
+    dfjoin.groupby(["run_group_analysis","run_id_seq"]).agg('count')["MCoVNumber"].reset_index().sort_values("run_id_seq").to_excel(ref_dir+"run_samplesheet_match_.xlsx",index=False)
     
-    
-    ### if strain is found in newer run then remove old run entry
     dfjoin.sort_values("run_id",inplace=True)
+
     dfjoin.drop_duplicates("MCoVNumber",keep="last",inplace=True)
 
-    dfjoin.to_csv(ref_dir+"5_strains_run_group_analysis_table_with_samplesheet_upto_"+lotdate+".csv",index=False)
-
-    
-
+    dfjoin.to_csv(ref_dir+"5_strains_run_group_analysis_table_with_samplesheet.csv",index=False)
 
         
 params = read_run_params()
-ref_dir = params["container"]+"database/"
-lotdate = params["run_date"]
+run = params["current_run"]
+bashCommunicator("mkdir -p " +params["container"]+"output/"+run+"/database/")
+bashCommunicator("cp "+params["container"]+"temp/"+run+".wuhan1.fa "+ params["container"]+"input_alignment/ " )
+bashCommunicator("cp "+params["container"]+"temp/"+run+"_set1_SampleSheet.csv "+ params["container"]+"input_samplesheet/ " )
+ref_dir = params["container"]+"output/"+run+"/database/"
 
-generate_mcov_db(ref_dir,lotdate)
-generate_strain_ids(params,ref_dir,lotdate)
-generate_rungroup_from_samplesheet(ref_dir,lotdate)
+generate_mcov_db(ref_dir)
+generate_strain_ids(params,ref_dir)
+generate_rungroup_from_samplesheet(ref_dir)

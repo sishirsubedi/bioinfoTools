@@ -9,8 +9,8 @@ def get_combine_df():
 
     all_strains = []
 
-    nta_dir = params["container"]+params["nta_input"]
-
+    nta_dir = params["container"]+"input_alignment/"
+    
     nta_files = params["nta_group_v1"]
 
     for nta_group in sorted(nta_files) :

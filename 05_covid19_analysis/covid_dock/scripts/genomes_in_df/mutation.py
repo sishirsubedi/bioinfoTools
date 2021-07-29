@@ -38,7 +38,7 @@ def collect_deletions(df):
         del_mutations = []
         for variant in row["nucleotide_change"]:
             if '-' in variant:##for deletion
-                if len(variant)>5 and int(variant[1:len(variant)-1])<29675:
+                if len(variant)>5 and int(variant[1:len(variant)-1])<29675:##end of CDS
                     del_mutations.append(variant)
         deletions.append([row['strain'],del_mutations])
     return deletions
@@ -136,8 +136,8 @@ def mutations_to_vcf_file(mutations,out_variant):
     bashCommunicator(cmd)
     print("Generating new annotation file")
 
-def curationAfterAnnotation(VEP_FILE):
-    print("Starting annotation curation")
+
+def readVEP(VEP_FILE):
     header=[]
     with open(VEP_FILE) as myfile:
         header = [next(myfile) for x in range(3)]
@@ -149,8 +149,12 @@ def curationAfterAnnotation(VEP_FILE):
     df_snpeff["VEP_INFO"]= [x.split(";")[1].split(',')[0] for x in df_snpeff.INFO]
     df_snpeff[columns_line] = df_snpeff['VEP_INFO'].str.split('|',expand=True)
 
-    ##get nt to aa dictionary
+    return df_snpeff
 
+def curationAfterAnnotation(VEP_FILE):
+    print("Starting annotation curation")
+    df_snpeff = readVEP(VEP_FILE)
+    ##get nt to aa dictionary
     ##b/c of issue with UTR and empty annotation mark mutations with no protein change
     df_snpeff.loc[(df_snpeff["HGVS.p"]==""),"HGVS.p"]="p.UNKNOWN"
 
@@ -192,17 +196,7 @@ def add_mutation_pair(df,nt_aa_dict):
 
 def add_deletion_column(df,VEP_FILE):
     print("Starting Deletion annotation curation")
-    header=[]
-    with open(VEP_FILE) as myfile:
-        header = [next(myfile) for x in range(3)]
-    columns_line=str(header[2].strip().split(':')[1]).replace(" ","").split('|')
-
-    df_snpeff = pd.read_csv(VEP_FILE,sep='\t',skiprows=5,header=None)
-    df_snpeff.columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']
-    df_snpeff["HGMD_INFO"]= [x.split(";")[0] for x in df_snpeff.INFO]
-    df_snpeff["VEP_INFO"]= [x.split(";")[1].split(',')[0] for x in df_snpeff.INFO]
-    df_snpeff[columns_line] = df_snpeff['VEP_INFO'].str.split('|',expand=True)
-
+    df_snpeff = readVEP(VEP_FILE)
     df_snpeff =  df_snpeff[df_snpeff["HGVS.p"]!=""]
 
     aa_dict = covid.covid_basics.AA_TriToS
@@ -247,7 +241,7 @@ def add_aa_deletions_column(df,wd,tag):
 
 def generate_snp_table(df_muttable,db,out_dir,tag):
 
-    df_db = pd.read_csv(db+".csv")
+    df_db = pd.read_csv(db)
 
     sel_runs = sorted([x for x in df_db.run_id_seq.unique() if "low_quality" not in x])
 

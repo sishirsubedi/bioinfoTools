@@ -19,6 +19,10 @@ def filterMainAlignment(df,mode=None):
     df[0] = [x.replace("-r3","").replace("_r3","").replace("r3","") for x in df[0].values]
     df[0] = [x.replace("v3","").replace("V3","") for x in df[0].values]
     df[0] = [x.replace("_","-") for x in df[0].values]
+    df[0] = [x.replace("Consensus-","").replace(".ivar-threshold-.6-quality-20","") for x in df[0]]
+
+
+
 
     print("before removing duplicates..."+str(df.shape))
     df.drop_duplicates(0,inplace=True)
@@ -39,7 +43,7 @@ def filterMainAlignment(df,mode=None):
 
     if mode =="cds":
         col = []
-        col.append("id")
+        col.append(0)
         for x in range(266,29675,1): col.append(x)   
         df.columns = col
 
